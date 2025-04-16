@@ -1,0 +1,30 @@
+[16-Apr-2025 14:24:10 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Symfony\Component\BrowserKit\Response::getStatus() in /home/antonin/app/otherProjects/server/amelie/test_amigo.php:33
+Stack trace:
+#0 /home/antonin/app/otherProjects/server/amelie/test_amigo.php(121): testUrl()
+#1 {main}
+  thrown in /home/antonin/app/otherProjects/server/amelie/test_amigo.php on line 33
+[16-Apr-2025 14:24:52 UTC] Récupération des données depuis tirage-gagnant.com/amigo/...
+[16-Apr-2025 14:24:52 UTC] Page récupérée, analyse du contenu...
+[16-Apr-2025 14:24:52 UTC] Structure de la page: <head>
+		<meta charset="utf-8">
+
+		            <title>Amigo FDJ : Résultat des tirages en temps réel et en direct</title>
+            <meta name="description" content="Les résultats des tirages de la loterie Amigo sont disponibles toutes les 5 minutes ⏩ De 00h05 à 23h55, suivez 250 tirages Amigo du jour">
+            <link rel="canonical" href="https://tirage-gagnant.com/amigo/">
+
+            
+            <meta property="og:title" content="Amigo FDJ : Résultat des tirages en temps réel e...
+[16-Apr-2025 14:24:52 UTC] Sélecteur réussi: .num, .chance - Trouvé 1884 numéros
+[16-Apr-2025 14:24:52 UTC] Récupération des données historiques depuis reducmiz.com...
+[16-Apr-2025 14:24:52 UTC] Tentative de récupération depuis https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=all...
+[16-Apr-2025 14:24:52 UTC] Page récupérée depuis https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=all. Analyse du contenu...
+[16-Apr-2025 14:24:52 UTC] Structure de la page: 
+	<head>
+	  <meta name="verify-v1" content="/EqSif+ID8F0x4trxlkoXDsl/IsbVr5XhBC6tU7nEJA=">
+		<meta name="Reply-to" content="webmasterRT@reducmiz.com">
+		<meta name="Identifier-URL" content="https://www.reducmiz.com">
+		<meta http-equiv="content-Type" content="text/html; charset=ISO-8859-1">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="canonical" href="https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&amp;nb=all">
+		<link rel="stylesheet" href="/bootstra...
+[16-Apr-2025 14:24:52 UTC] Récupération réussie depuis https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=all: 2000 groupes de numéros trouvés

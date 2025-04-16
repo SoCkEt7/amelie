@@ -4,19 +4,13 @@
  * Classe pour récupérer les données de tirages
  */
 class TirageDataFetcher {
-    private $cache;
     private $client;
     
     /**
      * Constructeur
-     * 
-     * @param DataCache $cache Instance de cache (ignoré - cache désactivé)
      */
-    public function __construct(DataCache $cache = null) {
-        // Ignorer le cache - il est désactivé
-        $this->cache = null;
-        
-        // Utiliser Goutte\Client simplement
+    public function __construct() {
+        // Utiliser Goutte\Client pour récupérer les données
         if (class_exists('Goutte\Client')) {
             $this->client = new \Goutte\Client();
         } else {
@@ -31,11 +25,8 @@ class TirageDataFetcher {
      * @return array Données de tirages récents
      */
     public function getRecentTirages() {
-        $cacheKey = 'recent_tirages';
         
-        // Pas de vérification de cache - toujours récupérer des données fraîches
-        
-        // Si pas dans le cache, récupérer depuis le site
+        // Récupérer depuis le site officiel
         $numSortis = [];
         $numSortisB = [];
         
@@ -135,7 +126,7 @@ class TirageDataFetcher {
                 'isAuthentic' => true
             ];
             
-            // Plus de stockage en cache
+            // Données prêtes à être retournées
             
             return $data;
         } catch (Exception $e) {
@@ -159,11 +150,8 @@ class TirageDataFetcher {
      * @return array Données historiques
      */
     public function getHistoricalTirages($limit = 1000) {
-        $cacheKey = 'historical_tirages_' . $limit;
         
-        // Pas de vérification de cache - toujours récupérer des données fraîches
-        
-        // Si pas dans le cache, récupérer depuis le site
+        // Récupérer directement depuis la source officielle
         try {
             // Ajouter un timeout pour éviter les blocages
             set_time_limit(30); // 30 secondes maximum pour récupérer les données
@@ -300,7 +288,7 @@ class TirageDataFetcher {
                 'isAuthentic' => true
             ];
             
-            // Plus de stockage en cache
+            // Données prêtes à être retournées
             
             return $data;
         } catch (Exception $e) {
@@ -322,9 +310,6 @@ class TirageDataFetcher {
      * @return array Données historiques enrichies
      */
     public function getExtendedHistoricalData() {
-        $cacheKey = 'extended_historical_data';
-        
-        // Pas de vérification de cache - toujours récupérer des données fraîches
         
         // Récupérer les données de base
         $baseData = $this->getHistoricalTirages(1000);
@@ -367,8 +352,7 @@ class TirageDataFetcher {
             'sources' => ['reducmiz.com', 'resultats-loto.com']
         ];
         
-        // Plus de stockage en cache
-        
+        // Retourner directement les données
         return $data;
     }
     

@@ -8,7 +8,6 @@
 include 'src/startup.php';
 
 // Inclure les classes nécessaires
-require_once 'src/class/DataCache.php';
 require_once 'src/class/TirageDataFetcher.php';
 require_once 'src/class/TirageStrategies.php';
 
