@@ -7,6 +7,11 @@
 // Inclure le fichier de démarrage
 include 'src/startup.php';
 
+// Inclure les classes nécessaires
+require_once 'src/class/DataCache.php';
+require_once 'src/class/TirageDataFetcher.php';
+require_once 'src/class/TirageStrategies.php';
+
 // Inclure l'en-tête
 include 'assets/header.php';
 
@@ -48,6 +53,10 @@ if (!isset($_SESSION['connected'])) { ?>
     </div>
 <?php } else {
     // Utilisateur connecté - Afficher l'application
+    
+    // Activer le rapport d'erreurs pour le débogage
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
     
     // Récupérer les données directement (sans cache)
     $dataFetcher = new TirageDataFetcher();
@@ -119,34 +128,144 @@ if (!isset($_SESSION['connected'])) { ?>
             </div>
             <div class="card-body">
                 <?php if (!empty($strategies)): ?>
-                    <div class="row">
-                        <?php foreach ($strategies as $index => $strategy): ?>
-                            <div class="col-md-6 mb-4">
-                                <div class="card h-100 border-<?php echo $strategy['class']; ?>">
-                                    <div class="card-header bg-<?php echo $strategy['class']; ?> text-white">
-                                        <h4><?php echo $strategy['name']; ?> 
-                                            <span class="badge bg-light text-dark float-end">
-                                                Score: <?php echo $strategy['rating']; ?>/10
-                                            </span>
-                                        </h4>
-                                    </div>
-                                    <div class="card-body">
-                                        <p><?php echo $strategy['description']; ?></p>
-                                        <h5>Numéros recommandés:</h5>
-                                        <div class="d-flex flex-wrap">
-                                            <?php foreach ($strategy['numbers'] as $num): ?>
-                                                <div class="number-badge <?php echo $strategy['class']; ?>"><?php echo $num; ?></div>
-                                            <?php endforeach; ?>
+                    <!-- Interface à onglets pour les stratégies -->
+                    <ul class="nav nav-tabs amelie-tabs mb-3" id="strategyTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="top-strategies-tab" data-bs-toggle="tab" data-bs-target="#top-strategies" type="button" role="tab" aria-controls="top-strategies" aria-selected="true">
+                                <i class="fas fa-star me-1"></i> Top 3
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="all-strategies-tab" data-bs-toggle="tab" data-bs-target="#all-strategies" type="button" role="tab" aria-controls="all-strategies" aria-selected="false">
+                                <i class="fas fa-list me-1"></i> Toutes les stratégies
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="strategyTabsContent">
+                        <!-- Onglet Top 3 Stratégies -->
+                        <div class="tab-pane fade show active" id="top-strategies" role="tabpanel" aria-labelledby="top-strategies-tab">
+                            <div class="row">
+                                <?php foreach (array_slice($strategies, 0, 3) as $index => $strategy): ?>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 border-<?php echo $strategy['class']; ?> shadow">
+                                            <div class="card-header bg-<?php echo $strategy['class']; ?> text-white py-2">
+                                                <h5 class="mb-0"><?php echo $strategy['name']; ?> 
+                                                    <span class="badge bg-light text-dark float-end">
+                                                        <?php echo $strategy['rating']; ?>/10
+                                                    </span>
+                                                </h5>
+                                            </div>
+                                            <div class="card-body p-3">
+                                                <div class="d-flex flex-wrap mb-2 justify-content-center">
+                                                    <?php foreach ($strategy['numbers'] as $num): ?>
+                                                        <div class="number-badge <?php echo $strategy['class']; ?> m-1 small"><?php echo $num; ?></div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                
+                                                <!-- Explication de la sélection -->
+                                                <div class="small text-muted mb-2"><?php echo $strategy['description']; ?></div>
+                                                
+                                                <div class="accordion accordion-flush" id="accordionStrat<?php echo $index; ?>">
+                                                    <div class="accordion-item">
+                                                        <h2 class="accordion-header">
+                                                            <button class="accordion-button collapsed bg-light p-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo $index; ?>">
+                                                                <small><i class="fas fa-lightbulb text-<?php echo $strategy['class']; ?> me-2"></i> Pourquoi ces numéros ?</small>
+                                                            </button>
+                                                        </h2>
+                                                        <div id="collapse<?php echo $index; ?>" class="accordion-collapse collapse" data-bs-parent="#accordionStrat<?php echo $index; ?>">
+                                                            <div class="accordion-body p-2 small">
+                                                                <?php
+                                                                    $explanations = [
+                                                                        'Numéros Fréquents' => "Ces numéros sont ceux qui apparaissent le plus souvent dans l'historique des tirages. Leur fréquence élevée d'apparition leur donne statistiquement plus de chances de sortir à nouveau.",
+                                                                        
+                                                                        'Numéros Rares' => "Ces numéros sont ceux qui sont sortis le moins souvent jusqu'à présent. Selon la théorie de la régression vers la moyenne, ils sont statistiquement 'dus' pour apparaître plus fréquemment dans les prochains tirages.",
+                                                                        
+                                                                        'Stratégie Bleue Maximum' => "Ces 7 numéros apparaissent le plus souvent en position bleue dans les tirages historiques. Cette stratégie vise le jackpot maximal (100 000€ pour une mise de 8€) qui correspond à 7 bleus, 0 jaunes.",
+                                                                        
+                                                                        'Équilibre Optimal (4B-3J)' => "Cette sélection combine les 4 numéros qui sortent le plus souvent en position bleue et les 3 numéros qui sortent le plus souvent en position jaune. C'est la combinaison avec le meilleur rapport probabilité/gain (1/3 383 pour 400€).",
+                                                                        
+                                                                        'Stratégie 5B-2J' => "Cette sélection comprend les 5 numéros qui apparaissent le plus souvent en position bleue et les 2 numéros qui apparaissent le plus souvent en position jaune, visant un équilibre entre probabilité (1/5 638) et gain (480€).",
+                                                                        
+                                                                        'ROI Maximal' => "Ces numéros ont été sélectionnés selon une formule d'optimisation qui équilibre leur probabilité d'apparition en position bleue (60%), jaune (20%) et globale (20%) pour maximiser le retour sur investissement.",
+                                                                        
+                                                                        'Numéros Chauds' => "Ces numéros sont ceux qui sont sortis le plus fréquemment dans les 200 tirages les plus récents. Ils représentent les tendances actuelles et exploitent le possible 'momentum' de certains numéros.",
+                                                                        
+                                                                        'Cyclique/Tendances' => "Ces numéros sont ceux qui sont les plus 'mûrs' pour apparaître selon leur cycle d'apparition habituel. Chacun d'eux a dépassé son intervalle moyen entre apparitions.",
+                                                                        
+                                                                        'Clusters' => "Ces numéros ont été identifiés comme ayant les plus fortes corrélations avec d'autres numéros dans les tirages historiques. Ils font partie de 'groupes' qui tendent à apparaître ensemble.",
+                                                                        
+                                                                        'Mix Probabilisé' => "Ces numéros ont été sélectionnés selon un calcul d'espérance mathématique qui prend en compte leur contribution à toutes les combinaisons gagnantes possibles du tableau des gains."
+                                                                    ];
+                                                                    
+                                                                    echo isset($explanations[$strategy['name']]) ? $explanations[$strategy['name']] : "Ces numéros ont été sélectionnés selon la méthode d'analyse " . $strategy['method'] . ".";
+                                                                ?>
+                                                                <div class="mt-2 border-top pt-2">
+                                                                    <div class="row g-1">
+                                                                        <div class="col-4"><strong>Méthode:</strong></div>
+                                                                        <div class="col-8"><?php echo $strategy['method']; ?></div>
+                                                                    </div>
+                                                                    <div class="row g-1">
+                                                                        <div class="col-4"><strong>Optimale:</strong></div>
+                                                                        <div class="col-8"><?php echo $strategy['bestPlayCount']; ?> numéros</div>
+                                                                    </div>
+                                                                    <div class="row g-1">
+                                                                        <div class="col-4"><strong>Mise:</strong></div>
+                                                                        <div class="col-8"><?php echo $strategy['optimalBet']; ?></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="mt-3">
-                                            <p><strong>Méthode:</strong> <?php echo $strategy['method']; ?></p>
-                                            <p><strong>Nombre optimal:</strong> <?php echo $strategy['bestPlayCount']; ?> numéros</p>
-                                            <p><strong>Mise recommandée:</strong> <?php echo $strategy['optimalBet']; ?></p>
-                                        </div>
                                     </div>
-                                </div>
+                                <?php endforeach; ?>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+                        
+                        <!-- Onglet Toutes les stratégies -->
+                        <div class="tab-pane fade" id="all-strategies" role="tabpanel" aria-labelledby="all-strategies-tab">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Stratégie</th>
+                                            <th>Numéros</th>
+                                            <th>Note</th>
+                                            <th>Description</th>
+                                            <th>Mise</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($strategies as $index => $strategy): ?>
+                                            <tr>
+                                                <td>
+                                                    <strong class="text-<?php echo $strategy['class']; ?>">
+                                                        <?php echo $strategy['name']; ?>
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        <?php foreach ($strategy['numbers'] as $num): ?>
+                                                            <div class="number-badge <?php echo $strategy['class']; ?> small" style="width: 1.8rem; height: 1.8rem; font-size: 0.8rem;"><?php echo $num; ?></div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-<?php echo $strategy['class']; ?>"><?php echo $strategy['rating']; ?></span>
+                                                </td>
+                                                <td>
+                                                    <small><?php echo $strategy['description']; ?></small>
+                                                </td>
+                                                <td><?php echo $strategy['optimalBet']; ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 <?php else: ?>
                     <p>Aucune stratégie disponible.</p>
@@ -211,42 +330,106 @@ if (!isset($_SESSION['connected'])) { ?>
                 <h3>Tableau des gains</h3>
             </div>
             <div class="card-body">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Numéros trouvés</th>
-                            <th>Gain</th>
-                            <th>Probabilité</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>7 numéros</td>
-                            <td>10 000€</td>
-                            <td>0.00001%</td>
-                        </tr>
-                        <tr>
-                            <td>6 numéros</td>
-                            <td>1 000€</td>
-                            <td>0.0012%</td>
-                        </tr>
-                        <tr>
-                            <td>5 numéros</td>
-                            <td>100€</td>
-                            <td>0.11%</td>
-                        </tr>
-                        <tr>
-                            <td>4 numéros</td>
-                            <td>10€</td>
-                            <td>2.53%</td>
-                        </tr>
-                        <tr>
-                            <td>3 numéros</td>
-                            <td>2€</td>
-                            <td>21.85%</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <ul class="nav nav-tabs amelie-tabs mb-3" id="gainsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="simple-tab" data-bs-toggle="tab" data-bs-target="#simple" type="button" role="tab" aria-controls="simple" aria-selected="true">
+                            <i class="fas fa-coins me-1"></i> Simplifié
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="detailed-tab" data-bs-toggle="tab" data-bs-target="#detailed" type="button" role="tab" aria-controls="detailed" aria-selected="false">
+                            <i class="fas fa-table me-1"></i> Détaillé
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content" id="gainsTabsContent">
+                    <!-- Tableau simplifié -->
+                    <div class="tab-pane fade show active" id="simple" role="tabpanel" aria-labelledby="simple-tab">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Numéros trouvés</th>
+                                    <th>Gain (mise 8€)</th>
+                                    <th>Probabilité</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>7 numéros (7B-0J)</td>
+                                    <td>100 000€</td>
+                                    <td>1 sur 1 184 040</td>
+                                </tr>
+                                <tr>
+                                    <td>7 numéros (6B-1J)</td>
+                                    <td>2 000€</td>
+                                    <td>1 sur 33 830</td>
+                                </tr>
+                                <tr>
+                                    <td>7 numéros (5B-2J)</td>
+                                    <td>480€</td>
+                                    <td>1 sur 5 638</td>
+                                </tr>
+                                <tr>
+                                    <td>7 numéros (4B-3J)</td>
+                                    <td>400€</td>
+                                    <td>1 sur 3 383</td>
+                                </tr>
+                                <tr>
+                                    <td>6 numéros (6B-0J)</td>
+                                    <td>1 000€</td>
+                                    <td>1 sur 10 572</td>
+                                </tr>
+                                <tr>
+                                    <td>6 numéros (5B-1J)</td>
+                                    <td>220€</td>
+                                    <td>1 sur 705</td>
+                                </tr>
+                                <tr>
+                                    <td>6 numéros (4B-2J)</td>
+                                    <td>80€</td>
+                                    <td>1 sur 211</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Tableau détaillé -->
+                    <div class="tab-pane fade" id="detailed" role="tabpanel" aria-labelledby="detailed-tab">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Numéros trouvés</th>
+                                        <th>Bleus</th>
+                                        <th>Jaunes</th>
+                                        <th>Probabilité</th>
+                                        <th>Gain (2€)</th>
+                                        <th>Gain (4€)</th>
+                                        <th>Gain (6€)</th>
+                                        <th>Gain (8€)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>7</td><td>7</td><td>0</td><td>1:1 184 040</td><td>25 000€</td><td>50 000€</td><td>75 000€</td><td>100 000€</td></tr>
+                                    <tr><td>7</td><td>6</td><td>1</td><td>1:33 830</td><td>500€</td><td>1 000€</td><td>1 500€</td><td>2 000€</td></tr>
+                                    <tr><td>7</td><td>5</td><td>2</td><td>1:5 638</td><td>120€</td><td>240€</td><td>360€</td><td>480€</td></tr>
+                                    <tr><td>7</td><td>4</td><td>3</td><td>1:3 383</td><td>100€</td><td>200€</td><td>300€</td><td>400€</td></tr>
+                                    <tr><td>7</td><td>3</td><td>4</td><td>1:6 766</td><td>80€</td><td>160€</td><td>240€</td><td>320€</td></tr>
+                                    <tr><td>7</td><td>2</td><td>5</td><td>1:56 383</td><td>100€</td><td>200€</td><td>300€</td><td>400€</td></tr>
+                                    <tr><td>6</td><td>6</td><td>0</td><td>1:10 572</td><td>250€</td><td>500€</td><td>750€</td><td>1 000€</td></tr>
+                                    <tr><td>6</td><td>5</td><td>1</td><td>1:705</td><td>55€</td><td>110€</td><td>165€</td><td>220€</td></tr>
+                                    <tr><td>6</td><td>4</td><td>2</td><td>1:211</td><td>20€</td><td>40€</td><td>60€</td><td>80€</td></tr>
+                                    <tr><td>6</td><td>3</td><td>3</td><td>1:111</td><td>25€</td><td>50€</td><td>75€</td><td>100€</td></tr>
+                                    <tr><td>6</td><td>2</td><td>4</td><td>1:705</td><td>15€</td><td>30€</td><td>45€</td><td>60€</td></tr>
+                                    <tr><td>6</td><td>1</td><td>5</td><td>1:10 572</td><td>10€</td><td>20€</td><td>30€</td><td>40€</td></tr>
+                                    <tr><td>5</td><td>5</td><td>0</td><td>1:470</td><td>50€</td><td>100€</td><td>150€</td><td>200€</td></tr>
+                                    <tr><td>5</td><td>4</td><td>1</td><td>1:56</td><td>8€</td><td>16€</td><td>24€</td><td>32€</td></tr>
+                                    <tr><td>5</td><td>3</td><td>2</td><td>1:28</td><td>3€</td><td>6€</td><td>9€</td><td>12€</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
