@@ -45,6 +45,17 @@ include('src/startup.php'); ?>
             
             <?php if (isset($_SESSION['connected'])): ?>
             <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <a href="index.php" class="btn btn-sm btn-outline-primary me-1">
+                        <i class="fas fa-home me-1"></i>Accueil
+                    </a>
+                    <a href="daily.php" class="btn btn-sm btn-outline-danger me-1">
+                        <i class="fas fa-calendar-day me-1"></i>Stratégies du jour
+                    </a>
+                    <a href="tirages.php" class="btn btn-sm btn-outline-success me-1">
+                        <i class="fas fa-history me-1"></i>Historique
+                    </a>
+                </div>
                 <a href="?logout" class="btn btn-sm btn-outline-danger">
                     <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
                 </a>
