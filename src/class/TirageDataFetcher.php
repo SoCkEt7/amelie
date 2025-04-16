@@ -122,7 +122,7 @@ class TirageDataFetcher {
                 'grilleB' => $grilleB,
                 'fetchTime' => time(),
                 'dataSource' => 'tirage-gagnant.com',
-                'lastUpdated' => date('Y-m-d H:i:s'),
+                'lastUpdated' => date('d/m/Y H:i:s', time()),
                 'isAuthentic' => true
             ];
             
@@ -284,7 +284,7 @@ class TirageDataFetcher {
                 'count' => count($numbers),
                 'fetchTime' => time(),
                 'dataSource' => 'reducmiz.com',
-                'lastUpdated' => date('Y-m-d H:i:s'),
+                'lastUpdated' => date('d/m/Y H:i:s', time()),
                 'isAuthentic' => true
             ];
             
