@@ -1,18 +1,21 @@
 <?php
-require($_SERVER['DOCUMENT_ROOT'].'/vendor/autoload.php');
-use Sunra\PhpSimple\HtmlDomParser;
+// Fichier de démarrage pour Amélie - version simplifiée
 
-session_start();
+// Démarrer la session s'il elle n'est pas déjà démarrée
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
-$loader = new Nette\Loaders\RobotLoader;
+// Charger les dépendances via Composer
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} else {
+    die("Erreur: Les dépendances ne sont pas installées. Exécutez 'composer install'.");
+}
 
-// Directories for RobotLoader to index (including subdirectories)
-$loader->addDirectory($_SERVER['DOCUMENT_ROOT'].'/src/class');
+// Configurer Chart.js pour les graphiques
+echo '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>';
 
-// Set caching to the 'temp' directory
-$loader->setTempDirectory($_SERVER['DOCUMENT_ROOT'].'/temp');
-$loader->register(); // Activate RobotLoader
-
-//Globals
-$password = "nirvana"; // Password for authentication
-$h = sha1($password.'migo'); // Hash for URL authentication (legacy)
+// Conserver le système d'authentification
+$password = "nirvana"; // Mot de passe pour l'authentification
+$h = sha1($password.'migo'); // Hash pour authentification via URL (legacy)
