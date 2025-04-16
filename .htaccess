@@ -1,0 +1,8 @@
+php_flag display_startup_errors on
+php_flag display_errors on
+
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} \!-f
+RewriteCond %{REQUEST_FILENAME} \!-d
+RewriteRule ^(.*)$ index.php?h=2a53f1f00e7df1f28a0f54e7bc20fb44aa90f2b1 [QSA,L]

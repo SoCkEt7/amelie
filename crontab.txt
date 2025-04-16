@@ -1,0 +1,2 @@
+# Les cron jobs sont désactivés - les données se chargent à l'exécution du programme
+# 0 * * * * php /var/www/amelie/cron_update_data.php

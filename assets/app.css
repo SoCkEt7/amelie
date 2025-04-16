@@ -1,0 +1,382 @@
+/* Système de design unifié pour Amélie - Générateur de Tirages */
+
+:root {
+    /* Palette de couleurs principale */
+    --primary: #4361ee;
+    --secondary: #7209b7;
+    --success: #2ec4b6;
+    --info: #4cc9f0;
+    --warning: #f9c74f;
+    --danger: #e63946;
+    --light: #f8f9fa;
+    --dark: #212529;
+    
+    /* Nuances complémentaires */
+    --primary-dark: #3a56d4;
+    --primary-light: #738bfa;
+    
+    /* Fond et carte */
+    --amigo-bg: #0a1128;
+    --amigo-bg-light: #1a2955;
+    --amigo-card: rgba(16, 29, 66, 0.8);
+    
+    /* Espacements et bordures */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2rem;
+    --border-radius: 12px;
+    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Style global */
+body {
+    background: linear-gradient(135deg, var(--amigo-bg) 0%, var(--amigo-bg-light) 100%);
+    font-family: "Inter", sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* Typographie */
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    margin-bottom: var(--space-md);
+    letter-spacing: -0.02em;
+}
+
+.monospaced {
+    font-family: "JetBrains Mono", monospace !important;
+}
+
+/* Structure de page */
+.content-wrapper {
+    padding-bottom: 80px;
+}
+
+main.container {
+    max-width: 1200px;
+}
+
+/* En-tête */
+.app-header {
+    background-color: rgba(10, 17, 40, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-md) 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* Pied de page */
+footer {
+    background-color: rgba(0, 0, 0, 0.85);
+    padding: var(--space-lg) 0;
+    width: 100%;
+    margin-top: var(--space-xl);
+}
+
+/* Cartes */
+.amelie-card {
+    background-color: var(--amigo-card);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--card-shadow);
+    backdrop-filter: blur(10px);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.amelie-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.amelie-card-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+/* Navigation par onglets */
+.amelie-tabs {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: var(--space-lg);
+}
+
+.amelie-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.amelie-tabs .nav-link:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.amelie-tabs .nav-link.active {
+    color: #fff;
+    background-color: transparent;
+    border-bottom: 3px solid var(--primary);
+}
+
+/* Visualisation des nombres */
+.number-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: var(--space-md) 0;
+}
+
+.number-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-family: "JetBrains Mono", monospace;
+    border-radius: 50%;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.number-badge:hover {
+    transform: scale(1.08);
+}
+
+.number-badge.small {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.125rem;
+}
+
+/* Classes de couleur cohérentes */
+.number-badge.primary {
+    background: var(--primary);
+    color: white;
+}
+
+.number-badge.secondary {
+    background: var(--secondary);
+    color: white;
+}
+
+.number-badge.success {
+    background: var(--success);
+    color: white;
+}
+
+.number-badge.info {
+    background: var(--info);
+    color: var(--dark);
+}
+
+.number-badge.warning {
+    background: var(--warning);
+    color: var(--dark);
+}
+
+.number-badge.danger {
+    background: var(--danger);
+    color: white;
+}
+
+.number-badge .probability {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Cartes de stratégie */
+.strategy-card {
+    background-color: var(--amigo-card);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    height: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.strategy-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.strategy-card .card-header {
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.strategy-card .card-body {
+    padding: 1.25rem;
+}
+
+/* Indicateurs de statut */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--border-radius);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.status-indicator .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-indicator .dot.authentic {
+    background-color: var(--success);
+    box-shadow: 0 0 6px var(--success);
+}
+
+.status-indicator .dot.simulated {
+    background-color: var(--danger);
+    box-shadow: 0 0 6px var(--danger);
+}
+
+/* Tableaux de statistiques */
+.stats-table {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    margin-bottom: var(--space-md);
+}
+
+.stats-table th {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 1rem;
+}
+
+.stats-table td {
+    padding: 0.75rem 1rem;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Badge de source */
+.data-source-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-bottom: var(--space-md);
+}
+
+/* Arrière-plan en verre */
+.bg-glass {
+    background-color: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+}
+
+/* Séparateur */
+.divider {
+    height: 1px;
+    background: linear-gradient(to right, 
+        rgba(255,255,255,0), 
+        rgba(255,255,255,0.2), 
+        rgba(255,255,255,0));
+    margin: var(--space-xl) 0;
+}
+
+/* KPIs et métriques */
+.metric-card {
+    padding: var(--space-md);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: "JetBrains Mono", monospace;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Ajustements responsifs */
+@media (max-width: 767.98px) {
+    .number-badge {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.125rem;
+    }
+    
+    .number-badge.small {
+        width: 2rem;
+        height: 2rem;
+        font-size: 1rem;
+    }
+    
+    .amelie-card {
+        padding: var(--space-md);
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Utilitaires */
+.text-gradient {
+    background: linear-gradient(to right, var(--primary), var(--info));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+}
+
+.tooltip-inner {
+    max-width: 200px;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    border-radius: 0.25rem;
+}
