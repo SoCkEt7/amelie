@@ -45,9 +45,6 @@ include('src/startup.php'); ?>
             
             <?php if (isset($_SESSION['connected'])): ?>
             <div class="d-flex align-items-center">
-                <a href="verify_cache.php" class="btn btn-sm btn-outline-light me-2 d-none d-md-inline-block">
-                    <i class="fas fa-check-circle me-1"></i>Vérifier le cache
-                </a>
                 <a href="?logout" class="btn btn-sm btn-outline-danger">
                     <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
                 </a>

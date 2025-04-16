@@ -22,7 +22,7 @@
                         <a href="#" class="btn btn-sm btn-outline-light me-2">
                             <i class="fas fa-question-circle me-1"></i>Aide
                         </a>
-                        <a href="init_cache.php" class="btn btn-sm btn-outline-primary">
+                        <a href="index.php" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-sync-alt me-1"></i>Actualiser
                         </a>
                     </div>
