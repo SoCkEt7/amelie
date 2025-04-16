@@ -1,95 +1,84 @@
-# Stratégies de prédiction d'Amélie
+# Stratégies optimisées pour Amigo
 
-Ce document détaille les différentes stratégies utilisées par Amélie pour générer des recommandations de tirages. Chaque stratégie utilise une approche mathématique ou statistique distincte pour analyser les données historiques et formuler des prédictions optimisées.
+Ce document décrit les stratégies et leur logique pour maximiser les gains au jeu Amigo.
 
-## 1. Quantum Algorithm
+## Tableau des gains
 
-### Principe fondamental
-Cette stratégie s'inspire des principes de la mécanique quantique, où les particules existent dans plusieurs états simultanément jusqu'à leur observation. Dans notre contexte, chaque nombre est considéré comme ayant une "probabilité d'onde" d'apparition.
+| Total_Bons | Nb_Bleus | Nb_Jaunes | Chance_sur | Gain_2€ | Gain_4€ | Gain_6€ | Gain_8€ |
+|------------|----------|-----------|------------|---------|---------|---------|---------|
+| 7 | 7 | 0 | 1184040 | 25000 | 50000 | 75000 | 100000 |
+| 7 | 6 | 1 | 33829.71 | 500 | 1000 | 1500 | 2000 |
+| 7 | 5 | 2 | 5638.29 | 120 | 240 | 360 | 480 |
+| 7 | 4 | 3 | 3382.97 | 100 | 200 | 300 | 400 |
+| 7 | 3 | 4 | 6765.94 | 80 | 160 | 240 | 320 |
+| 7 | 2 | 5 | 56382.86 | 100 | 200 | 300 | 400 |
+| 6 | 6 | 0 | 10571.79 | 250 | 500 | 750 | 1000 |
+| 6 | 5 | 1 | 704.79 | 55 | 110 | 165 | 220 |
+| 6 | 4 | 2 | 211.44 | 20 | 40 | 60 | 80 |
+| 6 | 3 | 3 | 111.44 | 25 | 50 | 75 | 100 |
+| 6 | 2 | 4 | 704.79 | 15 | 30 | 45 | 60 |
+| 6 | 1 | 5 | 10571.79 | 10 | 20 | 30 | 40 |
+| 5 | 5 | 0 | 469.86 | 50 | 100 | 150 | 200 |
+| 5 | 4 | 1 | 56.38 | 8 | 16 | 24 | 32 |
+| 5 | 3 | 2 | 28.19 | 3 | 6 | 9 | 12 |
+| 5 | 2 | 3 | 46.99 | 3 | 6 | 9 | 12 |
+| 5 | 1 | 4 | 281.91 | 3 | 6 | 9 | 12 |
+| 4 | 4 | 0 | 9867 | 3 | 6 | 9 | 12 |
+| 4 | 3 | 1 | 60.41 | 2 | 4 | 6 | 8 |
+| 4 | 2 | 2 | 12.08 | 2 | 4 | 6 | 8 |
+| 4 | 1 | 3 | 30.21 | 2 | 4 | 6 | 8 |
+| 4 | 0 | 4 | 422.87 | 2 | 4 | 6 | 8 |
 
-### Fonctionnement détaillé
-1. **Analyse bimodale** : Combine deux types de fréquences d'apparition - historique (long terme) et récente (court terme)
-2. **Facteur d'équilibre** : Favorise les nombres qui sont fréquents historiquement mais peu fréquents récemment
-3. **Modulation ondulatoire** : Applique une fonction sinusoïdale pour simuler des cycles d'apparition
-4. **Calcul du score** : `Score = (BalanceWeight * 0.7) + (WaveFactor * 0.3)`
-   - `BalanceWeight` = (FréquenceHistoriqueNormalisée * 0.7) + ((1 - FréquenceRécenteNormalisée) * 0.3)
-   - `WaveFactor` = (sin(WavePhase) + 1) / 2 (valeur entre 0 et 1)
+## Stratégies principales
 
-### Avantages
-- Capture à la fois les tendances à long terme et les anomalies récentes
-- La composante ondulatoire introduit une variabilité contrôlée
+### 1. Numéros Fréquents
+- **Description**: Sélectionne les numéros qui apparaissent le plus souvent dans les tirages historiques
+- **Méthode**: Analyse de fréquence globale
+- **Logique**: Plus un numéro est fréquent, plus il a de chances de réapparaître
 
-## 2. Golden Ratio
+### 2. Numéros Rares
+- **Description**: Sélectionne les numéros qui apparaissent rarement (théorie de la compensation)
+- **Méthode**: Analyse inverse de fréquence
+- **Logique**: Les numéros rares pourraient être "dus" selon la théorie de la régression vers la moyenne
 
-### Principe fondamental
-Cette stratégie utilise le nombre d'or (φ = 1.618033988749895), un rapport mathématique présent dans de nombreux phénomènes naturels, pour générer des séquences numériques "harmonieuses".
+### 3. Stratégie Bleue Maximum
+- **Description**: Maximise les chances d'obtenir des numéros bleus
+- **Méthode**: Sélection des numéros les plus fréquents en position bleue
+- **Logique**: Vise le jackpot maximal (7 bleus, 0 jaunes -> 100 000€ pour 8€)
 
-### Fonctionnement détaillé
-1. **Point de départ** : Basé sur la somme pondérée des fréquences historiques
-2. **Séquence du nombre d'or** : Chaque nombre suivant est calculé selon la formule `suivant = (précédent * φ) % 28`
-3. **Évitement des doublons** : Si un nombre généré existe déjà dans la séquence, une formule alternative est utilisée
-4. **Adaptation naturelle** : La séquence s'auto-ajuste aux caractéristiques des données précédentes
+### 4. Équilibre Optimal (4B-3J)
+- **Description**: Vise la combinaison avec le meilleur rapport probabilité/gain (4 bleus, 3 jaunes)
+- **Méthode**: Sélection des meilleurs numéros bleus et jaunes selon leur position historique
+- **Logique**: La combinaison 4B-3J a les meilleures chances (1/3383) pour un gain important (400€ pour 8€)
 
-### Fondement mathématique
-Le nombre d'or est lié à la séquence de Fibonacci et se manifeste dans diverses structures naturelles. La stratégie suppose que ce ratio "idéal" peut générer des séquences numériques avec une distribution optimale.
+### 5. Mix Probabilisé
+- **Description**: Pondère les numéros selon leur espérance mathématique de gain
+- **Méthode**: Calcul précis des probabilités et des gains espérés
+- **Logique**: Maximise l'espérance mathématique sur le long terme
 
-## 3. Cyclic Patterns
+### 6. Numéros Chauds
+- **Description**: Sélectionne les numéros récemment sortis plusieurs fois
+- **Méthode**: Analyse des 200 derniers tirages
+- **Logique**: Exploite les séries temporelles favorables
 
-### Principe fondamental
-Cette stratégie repose sur la détection et l'analyse des cycles récurrents dans les données historiques, en supposant que les nombres suivent des patterns cycliques d'apparition.
+## Stratégies avancées
 
-### Fonctionnement détaillé
-1. **Analyse des intervalles** : Calcule les intervalles entre apparitions pour chaque nombre
-2. **Calcul de maturité** : Détermine si un nombre est "dû" pour apparaître basé sur son cycle moyen
-3. **Score de maturité** : `MaturitéScore = TempsDepuisDernièreApparition / IntervalleApparitionMoyen`
-4. **Priorisation** : Sélectionne les nombres avec les scores de maturité les plus élevés
+### 7. Stratégie ROI Maximal
+- **Description**: Optimisation pointue du retour sur investissement
+- **Méthode**: Formule complexe intégrant fréquence, position et gains
+- **Logique**: Vise le meilleur rapport entre mise et gain espéré
 
-### Interprétation statistique
-Cette approche considère que les nombres à forte "maturité" ont une probabilité plus élevée d'apparaître prochainement, suivant une logique de "retour à la moyenne" statistique.
+### 8. Stratégie 5B-2J
+- **Description**: Vise spécifiquement la combinaison 5 bleus, 2 jaunes
+- **Méthode**: Sélection précise basée sur l'historique des positions
+- **Logique**: Bon équilibre entre probabilité (1/5638) et gain (480€ pour 8€)
 
-## 4. Frequency Analysis
+### 9. Cyclique/Tendances
+- **Description**: Détecte les cycles et tendances dans les tirages
+- **Méthode**: Analyse des intervalles d'apparition et des corrélations temporelles
+- **Logique**: Exploite la non-uniformité temporelle des tirages
 
-### Principe fondamental
-Cette stratégie repose sur l'analyse de la distribution de fréquence des nombres sur l'ensemble de l'historique des tirages, en cherchant un équilibre optimal entre les nombres rares et fréquents.
-
-### Fonctionnement détaillé
-1. **Classification par fréquence** : Trie les nombres du moins au plus fréquent
-2. **Hybridation équilibrée** : Combine 4 nombres parmi les moins fréquents avec 3 nombres parmi les plus fréquents
-3. **Logique de contraste** : Cette combinaison crée une grille équilibrée avec une variété statistique
-
-### Fondement statistique
-Cette stratégie s'appuie sur deux phénomènes opposés mais complémentaires :
-- **Régression vers la moyenne** : Les nombres peu fréquents tendent à apparaître plus souvent à l'avenir
-- **Persistance de tendance** : Les nombres fréquents ont une probabilité sous-jacente plus élevée d'apparaître
-
-## 5. Correlation Matrix
-
-### Principe fondamental
-Cette approche avancée analyse les corrélations entre les nombres qui apparaissent ensemble, en construisant un graphe de relations pour identifier les interconnexions les plus significatives.
-
-### Fonctionnement détaillé
-1. **Construction du graphe** : Chaque nombre est un nœud, les poids des arêtes représentent la fréquence d'apparition conjointe
-2. **Analyse de connectivité** : Calcule le score de connectivité pour chaque nombre basé sur ses connexions
-3. **Sélection hybride** : Choisit les 3 nombres les plus connectés puis les nombres fortement corrélés à ceux-ci
-4. **Optimisation de réseau** : Crée un ensemble cohérent de nombres avec des relations statistiques fortes
-
-### Avantages spécifiques
-- Intègre des relations de second ordre invisibles dans les analyses simples de fréquence
-- Capture la "structure latente" des tirages, au-delà des apparitions individuelles
-
-## Méthodes d'évaluation des stratégies
-
-Chaque stratégie est évaluée selon un système de notation qui prend en compte :
-
-1. **Qualité des données** : Amplitude et fraîcheur des données historiques et récentes
-2. **Cohérence interne** : Robustesse mathématique de la méthode
-3. **Ajustement stratégique** : Légère pondération spécifique à la stratégie
-4. **Facteur d'authenticité** : Fiabilité et origine des données utilisées
-
-Le score final est calculé sur une échelle de 7 à 10, avec une précision d'une décimale.
-
-## Combinaison des stratégies
-
-Pour une approche optimale, Amélie ne s'appuie pas sur une seule stratégie mais présente les résultats des différentes méthodes. La stratégie la mieux notée (selon les critères ci-dessus) est mise en avant comme recommandation principale.
-
-Cette méthodologie multi-stratégies permet de capturer différents aspects du phénomène aléatoire et d'offrir une perspective complète sur les prédictions possibles.
+### 10. Clusters
+- **Description**: Identifie les groupes de numéros apparaissant souvent ensemble
+- **Méthode**: Analyse de corrélation entre numéros
+- **Logique**: Exploite les affinités entre certains numéros

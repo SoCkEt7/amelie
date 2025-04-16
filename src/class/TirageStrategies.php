@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Classe TirageStrategies
+ * Classe TirageStrategies - Version simplifiée
  * 
- * Implémente différentes stratégies d'optimisation pour le jeu Amigo
- * basées sur l'analyse statistique et mathématique des données historiques.
+ * Implémente différentes stratégies optimisées pour le jeu Amigo
+ * basées sur l'analyse statistique des données historiques et le tableau des gains.
  * 
  * @package Amelie
  */
@@ -21,8 +21,26 @@ class TirageStrategies {
     const TIRAGE_SIZE = 12;            // Taille d'un tirage (7 bleus + 5 jaunes)
     const BLUE_COUNT = 7;              // Nombre de numéros bleus par tirage
     const YELLOW_COUNT = 5;            // Nombre de numéros jaunes par tirage
-    const STRATEGY_COUNT = 12;         // Nombre de stratégies implémentées
-
+    const PLAYER_PICK = 7;             // Nombre de numéros à choisir par le joueur
+    
+    // Tableau des gains et probabilités
+    private $gainTable = [
+        // format: [numéros_trouvés, bleus, jaunes, chance_sur, gain_pour_8€]
+        [7, 7, 0, 1184040, 100000],
+        [7, 6, 1, 33829.71, 2000],
+        [7, 5, 2, 5638.29, 480],
+        [7, 4, 3, 3382.97, 400],
+        [7, 3, 4, 6765.94, 320],
+        [7, 2, 5, 56382.86, 400],
+        [6, 6, 0, 10571.79, 1000],
+        [6, 5, 1, 704.79, 220],
+        [6, 4, 2, 211.44, 80],
+        [6, 3, 3, 111.44, 100],
+        [6, 2, 4, 704.79, 60],
+        [6, 1, 5, 10571.79, 40]
+        // Les autres combinaisons ont des gains plus faibles
+    ];
+    
     /**
      * Constructeur
      * 
@@ -54,24 +72,27 @@ class TirageStrategies {
         $frequency = isset($this->historicalData['frequency']) ? $this->historicalData['frequency'] : [];
         $numbers = isset($this->historicalData['numbers']) ? $this->historicalData['numbers'] : [];
         
-        // Stratégies principales
-        $this->strategies[] = $this->generateROIMaximalStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateBlueDominantStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateBalancedStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateCoverageStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateRentableSeuilStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateCyclicStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateClustersStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateOptimisationMisesStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateMoyenneVarianceStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateHauteVarianceStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateAdaptiveStrategy($frequency, $numbers);
-        $this->strategies[] = $this->generateMultiGrilleStrategy($frequency, $numbers);
+        // Calculer les fréquences spécifiques bleues et jaunes
+        $blueFrequency = $this->calculateBlueFrequency($numbers);
+        $yellowFrequency = $this->calculateYellowFrequency($numbers);
         
-        // S'assurer que chaque stratégie a TIRAGE_SIZE numéros au total
-        foreach ($this->strategies as &$strategy) {
-            $this->ensureFullTirageSize($strategy);
-        }
+        // Stratégies basées sur les patterns simples
+        $this->strategies[] = $this->generateMostFrequentStrategy($frequency);
+        $this->strategies[] = $this->generateLeastFrequentStrategy($frequency);
+        
+        // Stratégies basées sur les positions et le tableau des gains
+        $this->strategies[] = $this->generateBlueMaxStrategy($blueFrequency);
+        $this->strategies[] = $this->generateOptimalBalanceStrategy($blueFrequency, $yellowFrequency);
+        $this->strategies[] = $this->generate5B2JStrategy($blueFrequency, $yellowFrequency);
+        $this->strategies[] = $this->generateROIMaxStrategy($blueFrequency, $yellowFrequency, $frequency);
+        
+        // Stratégies basées sur l'analyse temporelle
+        $this->strategies[] = $this->generateHotNumbersStrategy($numbers);
+        $this->strategies[] = $this->generateCyclicStrategy($numbers);
+        
+        // Stratégies avancées
+        $this->strategies[] = $this->generateClustersStrategy($numbers);
+        $this->strategies[] = $this->generateMixedProbabilityStrategy($blueFrequency, $yellowFrequency, $frequency);
         
         // Trier les stratégies par note (rating) décroissante
         usort($this->strategies, function($a, $b) {
@@ -80,353 +101,293 @@ class TirageStrategies {
     }
     
     /**
-     * S'assure qu'une stratégie contient exactement TIRAGE_SIZE numéros
-     * en ajoutant des numéros manquants si nécessaire
+     * 1. Stratégie des numéros les plus fréquents
+     * Sélectionne les numéros qui apparaissent le plus souvent dans les tirages
      */
-    private function ensureFullTirageSize(&$strategy) {
-        if (!isset($strategy['numbers']) || !is_array($strategy['numbers'])) {
-            $strategy['numbers'] = [];
-        }
+    private function generateMostFrequentStrategy($frequency) {
+        // Trier par fréquence décroissante
+        arsort($frequency);
         
-        // S'il y a déjà trop de numéros, limiter au maximum
-        if (count($strategy['numbers']) > self::TIRAGE_SIZE) {
-            $strategy['numbers'] = array_slice($strategy['numbers'], 0, self::TIRAGE_SIZE);
-            return;
-        }
-        
-        // S'il n'y a pas assez de numéros, ajouter des numéros manquants
-        if (count($strategy['numbers']) < self::TIRAGE_SIZE) {
-            $missingCount = self::TIRAGE_SIZE - count($strategy['numbers']);
-            $existingNumbers = $strategy['numbers'];
-            $availableNumbers = [];
-            
-            // Construire une liste de numéros disponibles qui ne sont pas déjà sélectionnés
-            for ($i = 1; $i <= self::MAX_NUM; $i++) {
-                if (!in_array($i, $existingNumbers)) {
-                    $availableNumbers[] = $i;
-                }
-            }
-            
-            // Mélanger les numéros disponibles pour un choix aléatoire
-            shuffle($availableNumbers);
-            
-            // Ajouter des numéros manquants
-            $additionalNumbers = array_slice($availableNumbers, 0, $missingCount);
-            $strategy['numbers'] = array_merge($existingNumbers, $additionalNumbers);
-            
-            // Trier le tableau final
-            sort($strategy['numbers']);
-        }
-    }
-    
-    /**
-     * 1. Stratégie ROI Maximal
-     * Optimisation mathématique du retour sur investissement
-     */
-    private function generateROIMaximalStrategy($frequency, $numbers) {
-        // Calculer un score pour chaque numéro basé sur une combinaison de facteurs
-        $scores = [];
-        $totalFreq = array_sum($frequency);
-        
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            // Fréquence normalisée
-            $freq = isset($frequency[$i]) ? $frequency[$i] : 0;
-            $freqNorm = $totalFreq > 0 ? $freq / $totalFreq : 0;
-            
-            // Calculer l'écart-type pour ce numéro (variabilité d'apparition)
-            $stdDev = $this->calculateNumberStdDev($i, $numbers);
-            $stdDevNorm = $stdDev > 0 ? 1 / $stdDev : 1;
-            
-            // Calculer la corrélation avec d'autres numéros
-            $correlation = $this->calculateNumberCorrelation($i, $numbers);
-            
-            // Score final avec pondération des facteurs
-            $scores[$i] = (0.6 * $freqNorm) + (0.3 * $stdDevNorm) + (0.1 * $correlation);
-        }
-        
-        // Trier les scores par ordre décroissant
-        arsort($scores);
-        
-        // Sélectionner les 5 meilleurs numéros (optimal pour cette stratégie)
-        $selectedNumbers = array_slice(array_keys($scores), 0, 5);
+        // Sélectionner les 7 numéros les plus fréquents (PLAYER_PICK)
+        $selectedNumbers = array_slice(array_keys($frequency), 0, self::PLAYER_PICK);
         sort($selectedNumbers);
         
-        // Calculer un score de confiance basé sur la qualité des données
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.7;
-        $strategyRating = 7.0 + (2.5 * $dataQuality);
-        
         return [
-            'name' => 'ROI Maximal',
-            'description' => 'Optimisation mathématique du retour sur investissement à long terme',
+            'name' => 'Numéros Fréquents',
+            'description' => 'Sélectionne les numéros qui apparaissent le plus souvent dans les tirages historiques',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
+            'rating' => 8.1,
             'class' => 'primary',
-            'method' => 'Analyse d\'espérance mathématique',
-            'bestPlayCount' => 5,
-            'optimalBet' => '2€'
+            'method' => 'Analyse de fréquence globale',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '4€'
         ];
     }
     
     /**
-     * 2. Stratégie Bleu Dominant
-     * Concentration sur les numéros bleus fréquents pour viser les gains majeurs
+     * 2. Stratégie des numéros les moins fréquents
+     * Sélectionne les numéros qui apparaissent le moins souvent (théorie de la compensation)
      */
-    private function generateBlueDominantStrategy($frequency, $numbers) {
-        // Calculer les fréquences d'apparition comme "bleu"
-        $blueFrequency = $this->calculateBlueFrequency($numbers);
-        $scores = [];
-        
-        // Pour chaque numéro, calculer un score basé sur sa fréquence bleue et sa récence
+    private function generateLeastFrequentStrategy($frequency) {
+        // Initialiser une fréquence pour tous les numéros
+        $completeFrequency = [];
         for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $blueFreq = isset($blueFrequency[$i]) ? $blueFrequency[$i] : 0;
-            $recency = $this->calculateRecency($i, $numbers);
-            $trend = $this->calculateTrend($i, $numbers);
-            
-            // Score_Bleu(n) = (Fréquence_Bleu(n) × 2) - Récence(n) × 0.5 + Tendance(n)
-            $scores[$i] = ($blueFreq * 2) - ($recency * 0.5) + $trend;
+            $completeFrequency[$i] = isset($frequency[$i]) ? $frequency[$i] : 0;
         }
         
-        // Trier les scores par ordre décroissant
-        arsort($scores);
+        // Trier par fréquence croissante
+        asort($completeFrequency);
         
-        // Sélectionner les 7 meilleurs numéros (optimal pour cette stratégie)
-        $selectedNumbers = array_slice(array_keys($scores), 0, 7);
+        // Sélectionner les 7 numéros les moins fréquents (PLAYER_PICK)
+        $selectedNumbers = array_slice(array_keys($completeFrequency), 0, self::PLAYER_PICK);
         sort($selectedNumbers);
         
-        // Calculer un score de confiance basé sur la qualité des données
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.6;
-        $sampleSize = count($numbers);
-        $dataSizeQuality = min(1.0, $sampleSize / 1000); // Normalisé pour 1000 tirages
-        $strategyRating = 7.2 + (2.2 * $dataQuality * $dataSizeQuality);
+        return [
+            'name' => 'Numéros Rares',
+            'description' => 'Sélectionne les numéros qui apparaissent rarement (théorie de la compensation)',
+            'numbers' => $selectedNumbers,
+            'rating' => 7.8,
+            'class' => 'danger',
+            'method' => 'Analyse inverse de fréquence',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '4€'
+        ];
+    }
+    
+    /**
+     * 3. Stratégie Bleue Maximum
+     * Vise à obtenir 7 numéros bleus pour le jackpot maximal
+     */
+    private function generateBlueMaxStrategy($blueFrequency) {
+        // Trier par fréquence bleue décroissante
+        arsort($blueFrequency);
+        
+        // Sélectionner les 7 numéros (PLAYER_PICK) apparaissant le plus souvent comme bleus
+        $selectedNumbers = array_slice(array_keys($blueFrequency), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
         
         return [
-            'name' => 'Bleu Dominant',
-            'description' => 'Concentration sur les numéros à forte probabilité bleue pour viser les gains majeurs',
+            'name' => 'Stratégie Bleue Maximum',
+            'description' => 'Vise le jackpot maximal (7 bleus, 0 jaunes -> 100 000€ pour 8€)',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'danger',
-            'method' => 'Analyse de fréquence bleue et maturité',
-            'bestPlayCount' => 7,
+            'rating' => 8.5,
+            'class' => 'info',
+            'method' => 'Analyse de position bleue',
+            'bestPlayCount' => self::PLAYER_PICK,
             'optimalBet' => '8€'
         ];
     }
     
     /**
-     * 3. Stratégie Équilibrée
-     * Distribution optimale entre numéros bleus et jaunes
+     * 4. Stratégie d'Équilibre Optimal (4B-3J)
+     * Vise la combinaison 4 bleus, 3 jaunes pour le meilleur rapport probabilité/gain
      */
-    private function generateBalancedStrategy($frequency, $numbers) {
-        // Calculer les fréquences d'apparition comme "bleu" et "jaune"
-        $blueFrequency = $this->calculateBlueFrequency($numbers);
-        $yellowFrequency = $this->calculateYellowFrequency($numbers);
-        
-        $blueScores = [];
-        $yellowScores = [];
-        
-        // Normaliser les fréquences
-        $totalBlue = array_sum($blueFrequency);
-        $totalYellow = array_sum($yellowFrequency);
-        
-        // Calculer les scores pour chaque numéro
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $blueFreq = isset($blueFrequency[$i]) ? $blueFrequency[$i] / max(1, $totalBlue) : 0;
-            $yellowFreq = isset($yellowFrequency[$i]) ? $yellowFrequency[$i] / max(1, $totalYellow) : 0;
-            
-            // Score bleu: Favorise les numéros à forte probabilité bleue et faible jaune
-            $blueScores[$i] = (0.5 * $blueFreq) + (0.5 * (1 - $yellowFreq));
-            
-            // Score jaune: Favorise les numéros à forte probabilité jaune et faible bleue
-            $yellowScores[$i] = (0.5 * $yellowFreq) + (0.5 * (1 - $blueFreq));
-        }
-        
-        // Trier les scores
-        arsort($blueScores);
-        arsort($yellowScores);
-        
-        // Sélectionner les 4 meilleurs numéros bleus et les 2 meilleurs numéros jaunes
-        $blueSelectedKeys = array_slice(array_keys($blueScores), 0, 4);
-        $yellowSelectedKeys = array_slice(array_keys($yellowScores), 0, 2);
-        
-        // Fusionner et éviter les doublons
-        $selectedNumbers = array_unique(array_merge($blueSelectedKeys, $yellowSelectedKeys));
-        
-        // Si on n'a pas assez de numéros (à cause des doublons), ajouter des numéros supplémentaires
-        $allScores = [];
-        foreach ($blueScores as $num => $score) {
-            $allScores[$num] = $score + (isset($yellowScores[$num]) ? $yellowScores[$num] : 0);
-        }
-        arsort($allScores);
-        
-        while (count($selectedNumbers) < 6) {
-            $next = current(array_keys($allScores));
-            if (!in_array($next, $selectedNumbers)) {
-                $selectedNumbers[] = $next;
-            }
-            next($allScores);
-        }
-        
-        sort($selectedNumbers);
-        
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.75;
-        $strategyRating = 7.6 + (2.0 * $dataQuality);
-        
-        return [
-            'name' => 'Équilibrée',
-            'description' => 'Répartition optimale entre numéros bleus et jaunes pour équilibrer probabilité et gain',
-            'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'info',
-            'method' => 'Analyse discriminante bleu/jaune',
-            'bestPlayCount' => 6,
-            'optimalBet' => '4€'
-        ];
-    }
-    
-    /**
-     * 4. Stratégie de Couverture
-     * Maximisation de la probabilité d'obtenir au moins un petit gain
-     */
-    private function generateCoverageStrategy($frequency, $numbers) {
-        // Identifier les numéros bleus et jaunes les plus probables
-        $blueFrequency = $this->calculateBlueFrequency($numbers);
-        $yellowFrequency = $this->calculateYellowFrequency($numbers);
-        
+    private function generateOptimalBalanceStrategy($blueFrequency, $yellowFrequency) {
         // Trier par fréquence
         arsort($blueFrequency);
         arsort($yellowFrequency);
         
-        // Prendre les 2 bleus et 2 jaunes les plus probables
-        $blueSelected = array_slice(array_keys($blueFrequency), 0, 2);
-        $yellowSelected = array_slice(array_keys($yellowFrequency), 0, 2);
+        // Sélectionner les 4 meilleurs numéros bleus et les 3 meilleurs numéros jaunes
+        $blueSelected = array_slice(array_keys($blueFrequency), 0, 4);
+        $yellowSelected = array_slice(array_keys($yellowFrequency), 0, 3);
         
-        // Fusionner et trier
+        // Combiner et trier
         $selectedNumbers = array_merge($blueSelected, $yellowSelected);
         sort($selectedNumbers);
         
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.8;
-        $strategyRating = 7.8 + (1.8 * $dataQuality);
-        
         return [
-            'name' => 'Couverture',
-            'description' => 'Maximisation de la probabilité d\'obtenir des petits gains fréquents',
+            'name' => 'Équilibre Optimal (4B-3J)',
+            'description' => 'Vise la combinaison avec le meilleur rapport probabilité/gain',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
+            'rating' => 9.1,
             'class' => 'success',
-            'method' => 'Optimisation de la fréquence de gain',
-            'bestPlayCount' => 4,
-            'optimalBet' => '2€'
+            'method' => 'Analyse de position spécifique',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '8€'
         ];
     }
     
     /**
-     * 5. Stratégie Seuil Rentable
-     * Concentration sur les combinaisons au ratio probabilité/gain optimal
+     * 5. Stratégie 5B-2J
+     * Vise spécifiquement la combinaison 5 bleus, 2 jaunes
      */
-    private function generateRentableSeuilStrategy($frequency, $numbers) {
-        // Calculer le ratio valeur/probabilité pour chaque numéro
-        $valueRatio = [];
+    private function generate5B2JStrategy($blueFrequency, $yellowFrequency) {
+        // Trier par fréquence
+        arsort($blueFrequency);
+        arsort($yellowFrequency);
+        
+        // Sélectionner les 5 meilleurs numéros bleus et les 2 meilleurs numéros jaunes
+        $blueSelected = array_slice(array_keys($blueFrequency), 0, 5);
+        $yellowSelected = array_slice(array_keys($yellowFrequency), 0, 2);
+        
+        // Combiner et trier
+        $selectedNumbers = array_merge($blueSelected, $yellowSelected);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Stratégie 5B-2J',
+            'description' => 'Bon équilibre entre probabilité (1/5638) et gain (480€ pour 8€)',
+            'numbers' => $selectedNumbers,
+            'rating' => 8.8,
+            'class' => 'warning',
+            'method' => 'Analyse de position spécifique',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '8€'
+        ];
+    }
+    
+    /**
+     * 6. Stratégie ROI Maximal
+     * Optimisation pointue du retour sur investissement
+     */
+    private function generateROIMaxStrategy($blueFrequency, $yellowFrequency, $frequency) {
+        // Calculer un score ROI pour chaque numéro
+        $roiScores = [];
+        
+        // Normaliser les fréquences
+        $totalBlue = array_sum($blueFrequency);
+        $totalYellow = array_sum($yellowFrequency);
         $totalFreq = array_sum($frequency);
         
         for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $freq = isset($frequency[$i]) ? $frequency[$i] : 0;
-            $prob = $totalFreq > 0 ? $freq / $totalFreq : 0;
+            $blueProb = ($totalBlue > 0) ? ($blueFrequency[$i] / $totalBlue) : 0;
+            $yellowProb = ($totalYellow > 0) ? ($yellowFrequency[$i] / $totalYellow) : 0;
+            $globalFreq = ($totalFreq > 0) ? (isset($frequency[$i]) ? $frequency[$i] / $totalFreq : 0) : 0;
             
-            // Calculer un score de "valeur" basé sur les gains moyens historiques
-            // Pour simplifier, nous utilisons une approximation basée sur la fréquence
-            $value = $prob > 0 ? (1 / $prob) * 0.8 : 0;
-            
-            // Ratio(combinaison) = Gain(combinaison) × Probabilité(combinaison) / Coût_Mise
-            $valueRatio[$i] = ($value * $prob) / 4; // Coût moyen d'une mise à 4€
+            // Formule de ROI: combinaison pondérée des probabilités selon les gains potentiels
+            // Plus de poids pour les positions bleues (gains plus élevés)
+            $roiScores[$i] = ($blueProb * 0.6) + ($yellowProb * 0.2) + ($globalFreq * 0.2);
         }
         
-        // Trier par ratio valeur/probabilité
-        arsort($valueRatio);
+        // Trier par score ROI décroissant
+        arsort($roiScores);
         
-        // Sélectionner les 5 meilleurs numéros
-        $selectedNumbers = array_slice(array_keys($valueRatio), 0, 5);
+        // Sélectionner les 7 meilleurs numéros ROI
+        $selectedNumbers = array_slice(array_keys($roiScores), 0, self::PLAYER_PICK);
         sort($selectedNumbers);
         
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.7;
-        $strategyRating = 7.4 + (2.0 * $dataQuality);
-        
         return [
-            'name' => 'Seuil Rentable',
-            'description' => 'Optimisation du ratio probabilité/gain pour maximiser le rendement',
+            'name' => 'ROI Maximal',
+            'description' => 'Optimisation pointue du retour sur investissement',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'warning',
-            'method' => 'Optimisation sous contrainte budgétaire',
-            'bestPlayCount' => 5,
-            'optimalBet' => '4€'
+            'rating' => 8.9,
+            'class' => 'primary',
+            'method' => 'Formule complexe intégrant fréquence, position et gains',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '8€'
         ];
     }
     
     /**
-     * 6. Stratégie Cyclique
-     * Exploitation des cycles et patterns temporels dans les tirages
+     * 7. Stratégie des numéros chauds
+     * Sélectionne les numéros récemment sortis souvent
      */
-    private function generateCyclicStrategy($frequency, $numbers) {
-        // Détecter les cycles pour chaque numéro
-        $cyclicScores = [];
+    private function generateHotNumbersStrategy($numbers) {
+        // Prendre les 200 derniers tirages pour déterminer les numéros chauds
+        $recentNumbers = array_slice($numbers, 0, min(200, count($numbers)));
+        
+        // Calculer la fréquence dans cet échantillon récent
+        $hotFrequency = [];
+        foreach ($recentNumbers as $tirage) {
+            $allNumbers = [];
+            
+            // Extraire tous les numéros du tirage selon la structure
+            if (isset($tirage['blue']) && is_array($tirage['blue'])) {
+                $allNumbers = array_merge($allNumbers, $tirage['blue']);
+            }
+            if (isset($tirage['yellow']) && is_array($tirage['yellow'])) {
+                $allNumbers = array_merge($allNumbers, $tirage['yellow']);
+            }
+            if (empty($allNumbers) && isset($tirage['all']) && is_array($tirage['all'])) {
+                $allNumbers = $tirage['all'];
+            }
+            
+            // Compter les fréquences
+            foreach ($allNumbers as $num) {
+                if ($num >= 1 && $num <= self::MAX_NUM) {
+                    if (isset($hotFrequency[$num])) {
+                        $hotFrequency[$num]++;
+                    } else {
+                        $hotFrequency[$num] = 1;
+                    }
+                }
+            }
+        }
+        
+        // Trier par fréquence décroissante
+        arsort($hotFrequency);
+        
+        // Sélectionner les 7 numéros les plus "chauds" (PLAYER_PICK)
+        $selectedNumbers = array_slice(array_keys($hotFrequency), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Numéros Chauds',
+            'description' => 'Sélectionne les numéros qui sont sortis fréquemment dans les tirages récents',
+            'numbers' => $selectedNumbers,
+            'rating' => 8.3,
+            'class' => 'danger',
+            'method' => 'Analyse des 200 derniers tirages',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '6€'
+        ];
+    }
+    
+    /**
+     * 8. Stratégie Cyclique/Tendances
+     * Détecte les cycles et tendances dans les tirages
+     */
+    private function generateCyclicStrategy($numbers) {
+        // Calculer la maturité pour chaque numéro
+        $maturityScores = [];
         
         for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            // Calculer le score cyclique basé sur une analyse de série temporelle simplifiée
-            // Dans une implémentation complète, on utiliserait une transformée de Fourier
-            
-            // Pour cette version simplifiée, nous utilisons un modèle basé sur la périodicité
             $appearances = $this->getNumberAppearances($i, $numbers);
             $intervals = $this->calculateIntervals($appearances);
             
             if (empty($intervals)) {
-                $cyclicScores[$i] = 0;
+                $maturityScores[$i] = 0;
                 continue;
             }
             
-            // Calculer la périodicité moyenne
-            $avgPeriod = array_sum($intervals) / count($intervals);
+            // Calculer l'intervalle moyen
+            $avgInterval = array_sum($intervals) / count($intervals);
             
-            // Calculer la phase actuelle dans le cycle
+            // Calculer le temps depuis la dernière apparition
             $lastAppearance = end($appearances);
-            $currentPosition = count($numbers) - $lastAppearance;
-            $phaseRatio = $avgPeriod > 0 ? $currentPosition / $avgPeriod : 0;
+            $timeSinceLast = count($numbers) - $lastAppearance;
             
-            // Score basé sur la proximité à la prochaine "fenêtre d'apparition" prévue
-            // Atteint un maximum quand phaseRatio approche 1 (prochain cycle)
-            $cyclicScores[$i] = min(1, $phaseRatio);
+            // La maturité est le ratio du temps écoulé par rapport à l'intervalle moyen
+            $maturity = $avgInterval > 0 ? $timeSinceLast / $avgInterval : 0;
+            
+            // Score final: plus le numéro est "mûr", plus son score est élevé
+            $maturityScores[$i] = $maturity;
         }
         
-        // Trier par score cyclique
-        arsort($cyclicScores);
+        // Trier par score de maturité décroissant
+        arsort($maturityScores);
         
-        // Sélectionner les 6 meilleurs numéros
-        $selectedNumbers = array_slice(array_keys($cyclicScores), 0, 6);
+        // Sélectionner les 7 numéros les plus "mûrs"
+        $selectedNumbers = array_slice(array_keys($maturityScores), 0, self::PLAYER_PICK);
         sort($selectedNumbers);
         
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.65;
-        $dataSizeQuality = min(1.0, count($numbers) / 500); // Normalisé pour 500 tirages (minimum pour détecter des cycles)
-        $strategyRating = 7.3 + (2.1 * $dataQuality * $dataSizeQuality);
-        
         return [
-            'name' => 'Cyclique',
-            'description' => 'Exploitation des patterns temporels et cycles statistiques dans les tirages',
+            'name' => 'Cyclique/Tendances',
+            'description' => 'Détecte les cycles et tendances dans les tirages',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
+            'rating' => 8.2,
             'class' => 'secondary',
-            'method' => 'Analyse de séries temporelles',
-            'bestPlayCount' => 6,
-            'optimalBet' => '4€'
+            'method' => 'Analyse des intervalles d\'apparition',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '6€'
         ];
     }
     
     /**
-     * 7. Stratégie des Clusters
-     * Identification et exploitation des groupes de numéros à forte corrélation
+     * 9. Stratégie des Clusters
+     * Identifie les groupes de numéros apparaissant souvent ensemble
      */
-    private function generateClustersStrategy($frequency, $numbers) {
+    private function generateClustersStrategy($numbers) {
         // Construire une matrice de corrélation entre les numéros
         $correlationMatrix = $this->buildCorrelationMatrix($numbers);
         
@@ -447,239 +408,71 @@ class TirageStrategies {
         // Trier par score de cluster
         arsort($clusterScores);
         
-        // Sélectionner les 5 numéros avec les meilleurs scores de cluster
-        $selectedNumbers = array_slice(array_keys($clusterScores), 0, 5);
+        // Sélectionner les 7 numéros avec les meilleurs scores de cluster
+        $selectedNumbers = array_slice(array_keys($clusterScores), 0, self::PLAYER_PICK);
         sort($selectedNumbers);
-        
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.7;
-        $strategyRating = 7.1 + (2.2 * $dataQuality);
         
         return [
             'name' => 'Clusters',
-            'description' => 'Identification des groupes de numéros qui apparaissent fréquemment ensemble',
+            'description' => 'Identifie les groupes de numéros apparaissant souvent ensemble',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'primary',
-            'method' => 'Analyse de corrélation et clustering',
-            'bestPlayCount' => 5,
+            'rating' => 8.0,
+            'class' => 'info',
+            'method' => 'Analyse de corrélation entre numéros',
+            'bestPlayCount' => self::PLAYER_PICK,
             'optimalBet' => '6€'
         ];
     }
     
     /**
-     * 8. Stratégie d'Optimisation des Mises
-     * Ajustement du montant joué selon la confiance dans la prédiction
+     * 10. Stratégie Mix Probabilisé
+     * Pondère les numéros selon leur espérance mathématique de gain
      */
-    private function generateOptimisationMisesStrategy($frequency, $numbers) {
-        // Calculer un score prédictif global
-        $predictiveScores = [];
-        
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            // Combinaison de plusieurs facteurs prédictifs
-            $freq = isset($frequency[$i]) ? $frequency[$i] : 0;
-            $correlationFactor = $this->calculateNumberCorrelation($i, $numbers);
-            $trendFactor = $this->calculateTrend($i, $numbers);
-            
-            // Score pondéré
-            $predictiveScores[$i] = ($freq * 0.5) + ($correlationFactor * 0.3) + ($trendFactor * 0.2);
-        }
-        
-        // Trier par score prédictif
-        arsort($predictiveScores);
-        
-        // Déterminer le nombre optimal de numéros à jouer (variable selon confiance)
-        $confidenceLevel = array_sum(array_slice($predictiveScores, 0, 5));
-        $optimalNumberCount = $confidenceLevel > 0.6 ? 6 : ($confidenceLevel > 0.4 ? 5 : 4);
-        
-        // Sélectionner les numéros selon le nombre optimal
-        $selectedNumbers = array_slice(array_keys($predictiveScores), 0, $optimalNumberCount);
-        sort($selectedNumbers);
-        
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.75;
-        $strategyRating = 7.7 + (1.9 * $dataQuality);
-        
-        return [
-            'name' => 'Optimisation Mises',
-            'description' => 'Ajustement dynamique du nombre de numéros et des mises selon le niveau de confiance',
-            'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'info',
-            'method' => 'Analyse prédictive et critère de Kelly',
-            'bestPlayCount' => $optimalNumberCount,
-            'optimalBet' => $confidenceLevel > 0.6 ? '6€' : ($confidenceLevel > 0.4 ? '4€' : '2€')
-        ];
-    }
-    
-    /**
-     * 9. Stratégie de Moyenne Variance
-     * Équilibrage entre fréquence et montant des gains
-     */
-    private function generateMoyenneVarianceStrategy($frequency, $numbers) {
-        // Paramètre d'aversion au risque (lambda)
-        $lambda = 0.5; // Équilibre entre espérance et variance
-        
-        // Calculer utilité (espérance - lambda * variance) pour chaque numéro
-        $utilityScores = [];
-        
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $esperance = isset($frequency[$i]) ? $frequency[$i] / max(1, array_sum($frequency)) : 0;
-            $variance = $this->calculateNumberVariance($i, $numbers);
-            
-            // Utilité = Espérance - lambda * Variance
-            $utilityScores[$i] = $esperance - ($lambda * $variance);
-        }
-        
-        // Trier par score d'utilité
-        arsort($utilityScores);
-        
-        // Sélectionner les 5 meilleurs numéros
-        $selectedNumbers = array_slice(array_keys($utilityScores), 0, 5);
-        sort($selectedNumbers);
-        
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.75;
-        $strategyRating = 7.5 + (1.9 * $dataQuality);
-        
-        return [
-            'name' => 'Moyenne Variance',
-            'description' => 'Équilibre optimal entre espérance de gain et stabilité des résultats',
-            'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'success',
-            'method' => 'Optimisation de portefeuille Markowitz',
-            'bestPlayCount' => 5,
-            'optimalBet' => '4€'
-        ];
-    }
-    
-    /**
-     * 10. Stratégie de Haute Variance
-     * Acceptation d'une forte volatilité pour cibler les gros gains
-     */
-    private function generateHauteVarianceStrategy($frequency, $numbers) {
-        // Calculer la probabilité conditionnelle pour chaque numéro
-        // P(n est tiré | gain > seuil_élevé)
-        
-        // Pour cette simplification, nous utilisons une approximation:
-        // Les numéros qui sont sortis récemment avec une faible fréquence globale
-        $conditionalScores = [];
-        
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $freq = isset($frequency[$i]) ? $frequency[$i] : 0;
-            $recency = $this->calculateRecency($i, $numbers);
-            
-            // Favoriser les numéros à faible fréquence mais sortis récemment
-            // Ces numéros ont potentiellement un comportement "aberrant" qui peut être exploité
-            $conditionalScores[$i] = $recency > 0 ? (1 / max(1, $freq)) * (1 / $recency) : 0;
-        }
-        
-        // Trier par score conditionnel
-        arsort($conditionalScores);
-        
-        // Sélectionner les 7 meilleurs numéros (maximise le jackpot potentiel)
-        $selectedNumbers = array_slice(array_keys($conditionalScores), 0, 7);
-        sort($selectedNumbers);
-        
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.6;
-        $strategyRating = 7.0 + (1.8 * $dataQuality);
-        
-        return [
-            'name' => 'Haute Variance',
-            'description' => 'Stratégie agressive ciblant les gros gains en acceptant une forte volatilité',
-            'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'danger',
-            'method' => 'Modélisation des queues de distribution',
-            'bestPlayCount' => 7,
-            'optimalBet' => '8€'
-        ];
-    }
-    
-    /**
-     * 11. Stratégie Adaptative
-     * Ajustement dynamique selon les tendances récentes et la "maturité" des numéros
-     */
-    private function generateAdaptiveStrategy($frequency, $numbers) {
-        // Paramètres de pondération (calibrés dynamiquement)
-        $alpha = 0.5; // Poids de la tendance récente
-        $beta = 0.3;  // Poids de la maturité
-        $gamma = 0.2; // Poids de l'écart moyen
-        
-        // Calculer les facteurs pour chaque numéro
-        $adaptiveScores = [];
-        
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $recentTrend = $this->calculateTrend($i, $numbers);
-            $maturity = $this->calculateMaturity($i, $numbers);
-            $avgDeviation = $this->calculateMeanDeviation($i, $numbers);
-            
-            // Score adaptatif: combinaison pondérée des facteurs
-            $adaptiveScores[$i] = ($alpha * $recentTrend) + ($beta * $maturity) + ($gamma * $avgDeviation);
-        }
-        
-        // Trier par score adaptatif
-        arsort($adaptiveScores);
-        
-        // Sélectionner les 6 meilleurs numéros (compromis robuste)
-        $selectedNumbers = array_slice(array_keys($adaptiveScores), 0, 6);
-        sort($selectedNumbers);
-        
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.75;
-        $recentDataQuality = isset($this->recentData['isAuthentic']) && $this->recentData['isAuthentic'] ? 1.0 : 0.6;
-        $strategyRating = 7.7 + (1.9 * $dataQuality * $recentDataQuality);
-        
-        return [
-            'name' => 'Adaptative',
-            'description' => 'Ajustement en temps réel selon les tendances récentes et la maturité des numéros',
-            'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'warning',
-            'method' => 'Modèle bayésien avec adaptation temporelle',
-            'bestPlayCount' => 6,
-            'optimalBet' => '4€'
-        ];
-    }
-    
-    /**
-     * 12. Stratégie Multi-Grille Complémentaire
-     * Optimisation de plusieurs grilles jouées simultanément
-     */
-    private function generateMultiGrilleStrategy($frequency, $numbers) {
-        // Simuler la génération de plusieurs grilles complémentaires
-        // Pour cette version simplifiée, nous générons une seule grille optimale
+    private function generateMixedProbabilityStrategy($blueFrequency, $yellowFrequency, $frequency) {
+        // Calcul d'espérance mathématique pour chaque numéro
+        $expectedValues = [];
         
         // Normaliser les fréquences
-        $normalizedFreq = [];
-        $totalFreq = array_sum($frequency);
+        $totalBlue = array_sum($blueFrequency);
+        $totalYellow = array_sum($yellowFrequency);
         
         for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            $normalizedFreq[$i] = $totalFreq > 0 ? (isset($frequency[$i]) ? $frequency[$i] / $totalFreq : 0) : 0;
+            $blueProb = ($totalBlue > 0) ? ($blueFrequency[$i] / $totalBlue) : 0;
+            $yellowProb = ($totalYellow > 0) ? ($yellowFrequency[$i] / $totalYellow) : 0;
+            
+            // Calculer l'espérance mathématique basée sur le tableau des gains
+            $expectedValue = 0;
+            
+            foreach ($this->gainTable as $gainRow) {
+                list($totalMatched, $blueMatched, $yellowMatched, $odds, $gain) = $gainRow;
+                
+                // Probabilité simplifiée de faire partie de cette combinaison gagnante
+                $probContribution = ($blueProb * $blueMatched / self::BLUE_COUNT) + 
+                                   ($yellowProb * $yellowMatched / self::YELLOW_COUNT);
+                
+                // Ajouter à l'espérance mathématique
+                $expectedValue += ($probContribution * $gain) / $odds;
+            }
+            
+            $expectedValues[$i] = $expectedValue;
         }
         
-        // Trier par fréquence normalisée
-        arsort($normalizedFreq);
+        // Trier par espérance mathématique décroissante
+        arsort($expectedValues);
         
-        // Sélectionner les 5 meilleurs numéros (compromis optimal pour une grille)
-        $selectedNumbers = array_slice(array_keys($normalizedFreq), 0, 5);
+        // Sélectionner les 7 numéros avec la meilleure espérance mathématique
+        $selectedNumbers = array_slice(array_keys($expectedValues), 0, self::PLAYER_PICK);
         sort($selectedNumbers);
         
-        // Calculer un score de confiance
-        $dataQuality = isset($this->historicalData['isAuthentic']) && $this->historicalData['isAuthentic'] ? 1.0 : 0.8;
-        $strategyRating = 7.6 + (1.9 * $dataQuality);
-        
         return [
-            'name' => 'Multi-Grille',
-            'description' => 'Optimisation de la distribution des numéros sur plusieurs grilles complémentaires',
+            'name' => 'Mix Probabilisé',
+            'description' => 'Pondère les numéros selon leur espérance mathématique de gain',
             'numbers' => $selectedNumbers,
-            'rating' => $strategyRating,
-            'class' => 'primary',
-            'method' => 'Maximisation de la couverture',
-            'bestPlayCount' => 5,
-            'optimalBet' => '2€'
+            'rating' => 8.6,
+            'class' => 'success',
+            'method' => 'Calcul précis des probabilités et des gains espérés',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '8€'
         ];
     }
     
@@ -771,118 +564,6 @@ class TirageStrategies {
     }
     
     /**
-     * Calcule l'écart-type d'apparition d'un numéro
-     */
-    private function calculateNumberStdDev($number, $numbers) {
-        $appearances = $this->getNumberAppearances($number, $numbers);
-        $intervals = $this->calculateIntervals($appearances);
-        
-        if (empty($intervals)) {
-            return 0;
-        }
-        
-        // Calculer la moyenne
-        $mean = array_sum($intervals) / count($intervals);
-        
-        // Calculer la somme des carrés des écarts
-        $sumSquaredDiff = 0;
-        foreach ($intervals as $interval) {
-            $sumSquaredDiff += pow($interval - $mean, 2);
-        }
-        
-        // Calculer l'écart-type
-        $stdDev = sqrt($sumSquaredDiff / count($intervals));
-        
-        return $stdDev;
-    }
-    
-    /**
-     * Calcule la corrélation d'un numéro avec les autres
-     */
-    private function calculateNumberCorrelation($number, $numbers) {
-        $correlationSum = 0;
-        $count = 0;
-        
-        // Construire un tableau d'apparition pour le numéro ciblé
-        $targetAppearances = [];
-        foreach ($numbers as $index => $tirage) {
-            $allNumbers = array_merge(
-                isset($tirage['blue']) ? $tirage['blue'] : [],
-                isset($tirage['yellow']) ? $tirage['yellow'] : []
-            );
-            $targetAppearances[$index] = in_array($number, $allNumbers) ? 1 : 0;
-        }
-        
-        // Calculer la corrélation avec chaque autre numéro
-        for ($i = 1; $i <= self::MAX_NUM; $i++) {
-            if ($i == $number) {
-                continue;
-            }
-            
-            $otherAppearances = [];
-            foreach ($numbers as $index => $tirage) {
-                $allNumbers = array_merge(
-                    isset($tirage['blue']) ? $tirage['blue'] : [],
-                    isset($tirage['yellow']) ? $tirage['yellow'] : []
-                );
-                $otherAppearances[$index] = in_array($i, $allNumbers) ? 1 : 0;
-            }
-            
-            // Calculer la corrélation selon Pearson
-            $correlation = $this->calculatePearsonCorrelation($targetAppearances, $otherAppearances);
-            
-            if (!is_nan($correlation)) {
-                $correlationSum += $correlation;
-                $count++;
-            }
-        }
-        
-        // Retourner la corrélation moyenne
-        return $count > 0 ? $correlationSum / $count : 0;
-    }
-    
-    /**
-     * Calcule la corrélation de Pearson entre deux séries
-     */
-    private function calculatePearsonCorrelation($series1, $series2) {
-        // Vérifier que les séries ont la même longueur
-        if (count($series1) != count($series2)) {
-            return NAN;
-        }
-        
-        $n = count($series1);
-        
-        // Calculer les moyennes
-        $mean1 = array_sum($series1) / $n;
-        $mean2 = array_sum($series2) / $n;
-        
-        // Calculer les variances et la covariance
-        $variance1 = 0;
-        $variance2 = 0;
-        $covariance = 0;
-        
-        for ($i = 0; $i < $n; $i++) {
-            $diff1 = $series1[$i] - $mean1;
-            $diff2 = $series2[$i] - $mean2;
-            
-            $variance1 += $diff1 * $diff1;
-            $variance2 += $diff2 * $diff2;
-            $covariance += $diff1 * $diff2;
-        }
-        
-        // Calculer l'écart-type
-        $stdDev1 = sqrt($variance1);
-        $stdDev2 = sqrt($variance2);
-        
-        // Calculer la corrélation
-        if ($stdDev1 * $stdDev2 == 0) {
-            return 0; // Pour éviter la division par zéro
-        }
-        
-        return $covariance / ($stdDev1 * $stdDev2);
-    }
-    
-    /**
      * Obtient les indices de tirage où un numéro est apparu
      */
     private function getNumberAppearances($number, $numbers) {
@@ -908,21 +589,10 @@ class TirageStrategies {
             }
         } else {
             // Tableau plat - chercher le numéro dans tous les tirages
-            // Deux cas possibles: tableau simple ou tableau indexé
-            if (is_int(key($numbers))) {
-                $isIndexed = true;
-                foreach ($numbers as $index => $num) {
-                    if ($num == $number) {
-                        $appearances[] = $index;
-                    }
-                }
-            } else {
-                // Tableau associatif ou structure complexe
-                $chunks = array_chunk($numbers, self::TIRAGE_SIZE);
-                foreach ($chunks as $index => $tirage) {
-                    if (in_array($number, $tirage)) {
-                        $appearances[] = $index;
-                    }
+            $chunks = array_chunk($numbers, self::TIRAGE_SIZE);
+            foreach ($chunks as $index => $tirage) {
+                if (in_array($number, $tirage)) {
+                    $appearances[] = $index;
                 }
             }
         }
@@ -942,117 +612,6 @@ class TirageStrategies {
         }
         
         return $intervals;
-    }
-    
-    /**
-     * Calcule la récence d'un numéro (temps depuis sa dernière apparition)
-     */
-    private function calculateRecency($number, $numbers) {
-        $appearances = $this->getNumberAppearances($number, $numbers);
-        
-        if (empty($appearances)) {
-            return PHP_INT_MAX; // Numéro jamais apparu
-        }
-        
-        $lastAppearance = end($appearances);
-        $totalTirages = count($numbers);
-        
-        return $totalTirages - $lastAppearance;
-    }
-    
-    /**
-     * Calcule la tendance récente d'un numéro
-     */
-    private function calculateTrend($number, $numbers) {
-        $appearances = $this->getNumberAppearances($number, $numbers);
-        
-        if (count($appearances) < 2) {
-            return 0; // Pas assez de données pour calculer une tendance
-        }
-        
-        // Diviser les apparitions en deux moitiés: récente et ancienne
-        $countAppearances = count($appearances);
-        $recentAppearances = array_slice($appearances, $countAppearances / 2);
-        $oldAppearances = array_slice($appearances, 0, $countAppearances / 2);
-        
-        // Calculer la fréquence dans chaque moitié
-        $totalTirages = count($numbers);
-        $halfTirages = $totalTirages / 2;
-        
-        $recentFreq = count($recentAppearances) / $halfTirages;
-        $oldFreq = count($oldAppearances) / $halfTirages;
-        
-        // La tendance est la différence entre fréquences récente et ancienne
-        return $recentFreq - $oldFreq;
-    }
-    
-    /**
-     * Calcule la maturité d'un numéro
-     */
-    private function calculateMaturity($number, $numbers) {
-        $appearances = $this->getNumberAppearances($number, $numbers);
-        $intervals = $this->calculateIntervals($appearances);
-        
-        if (empty($intervals)) {
-            return 0; // Pas assez de données
-        }
-        
-        // Calculer l'intervalle moyen
-        $avgInterval = array_sum($intervals) / count($intervals);
-        
-        // Calculer le temps depuis la dernière apparition
-        $lastAppearance = end($appearances);
-        $timeSinceLast = count($numbers) - $lastAppearance;
-        
-        // La maturité est le ratio du temps écoulé par rapport à l'intervalle moyen
-        return $avgInterval > 0 ? $timeSinceLast / $avgInterval : 0;
-    }
-    
-    /**
-     * Calcule l'écart moyen par rapport à l'intervalle attendu
-     */
-    private function calculateMeanDeviation($number, $numbers) {
-        $appearances = $this->getNumberAppearances($number, $numbers);
-        $intervals = $this->calculateIntervals($appearances);
-        
-        if (empty($intervals)) {
-            return 0; // Pas assez de données
-        }
-        
-        // Écart moyen attendu: 28/12 = 2.33 tirages entre apparitions
-        $expectedInterval = self::MAX_NUM / self::TIRAGE_SIZE;
-        
-        // Calculer l'écart moyen par rapport à l'intervalle attendu
-        $deviations = [];
-        foreach ($intervals as $interval) {
-            $deviations[] = abs($interval - $expectedInterval);
-        }
-        
-        return array_sum($deviations) / count($deviations);
-    }
-    
-    /**
-     * Calcule la variance d'un numéro
-     */
-    private function calculateNumberVariance($number, $numbers) {
-        $appearances = $this->getNumberAppearances($number, $numbers);
-        $intervals = $this->calculateIntervals($appearances);
-        
-        if (empty($intervals)) {
-            return 0;
-        }
-        
-        // Calculer la moyenne
-        $mean = array_sum($intervals) / count($intervals);
-        
-        // Calculer la somme des carrés des écarts
-        $sumSquaredDiff = 0;
-        foreach ($intervals as $interval) {
-            $sumSquaredDiff += pow($interval - $mean, 2);
-        }
-        
-        // Calculer la variance
-        return $sumSquaredDiff / count($intervals);
     }
     
     /**
