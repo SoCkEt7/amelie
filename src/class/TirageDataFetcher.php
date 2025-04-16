@@ -65,17 +65,14 @@ class TirageDataFetcher {
                     }
                 });
             } catch (\Exception $e) {
-                // En cas d'erreur, utiliser quelques nombres aléatoires pour éviter un crash
+                // En cas d'erreur, lancer une exception
                 error_log("Erreur lors de l'extraction des numéros: " . $e->getMessage());
-                for ($i = 0; $i < TirageStrategies::TIRAGE_SIZE; $i++) {
-                    $allNumbers[] = mt_rand(1, TirageStrategies::MAX_NUM);
-                }
+                throw new Exception("Impossible d'extraire les numéros du tirage. Données réelles non disponibles.");
             }
             
-            // Répartir entre bleus et jaunes selon les règles du jeu
             // S'assurer d'avoir suffisamment de numéros
-            while (count($allNumbers) < TirageStrategies::TIRAGE_SIZE) {
-                $allNumbers[] = mt_rand(1, TirageStrategies::MAX_NUM);
+            if (count($allNumbers) < TirageStrategies::TIRAGE_SIZE) {
+                throw new Exception("Données incomplètes : nombre insuffisant de numéros dans le tirage récent.");
             }
             
             // Les 7 premiers sont bleus, les 5 suivants sont jaunes
@@ -179,11 +176,9 @@ class TirageDataFetcher {
                 }
             }
             
-            // Générer des données simulées si pas assez de données
+            // Vérifier si nous avons assez de données
             if (count($allNumsFlat) < TirageStrategies::TIRAGE_SIZE) {
-                for ($i = 0; $i < TirageStrategies::TIRAGE_SIZE * 10; $i++) { // 10 tirages simulés
-                    $allNumsFlat[] = mt_rand(1, TirageStrategies::MAX_NUM);
-                }
+                throw new Exception("Données historiques insuffisantes pour une analyse fiable. Impossible d'accéder aux données réelles.");
             }
             
             // Limiter le nombre de tirages si demandé
@@ -196,9 +191,9 @@ class TirageDataFetcher {
             $chunks = array_chunk($allNumsFlat, TirageStrategies::TIRAGE_SIZE);
             
             foreach ($chunks as $chunk) {
-                // Compléter le chunk si nécessaire
-                while (count($chunk) < TirageStrategies::TIRAGE_SIZE) {
-                    $chunk[] = mt_rand(1, TirageStrategies::MAX_NUM);
+                // Vérifier que le chunk a la bonne taille
+                if (count($chunk) < TirageStrategies::TIRAGE_SIZE) {
+                    continue; // Ignorer ce tirage s'il est incomplet
                 }
                 
                 $blue = array_slice($chunk, 0, TirageStrategies::BLUE_COUNT);
