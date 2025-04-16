@@ -206,12 +206,28 @@ if (!isset($_SESSION['connected'])) { ?>
             <div class="card-body">
                 <?php if (!empty($dailyStrategies)): ?>
                     <div class="row">
-                        <?php foreach ($dailyStrategies as $index => $strategy): ?>
+                        <?php 
+                        // Trier les stratégies en deux groupes - standards et innovantes
+                        $standardStrategies = array_slice($dailyStrategies, 0, 5);
+                        $innovativeStrategies = array_slice($dailyStrategies, 5);
+                        
+                        // Afficher un titre pour les stratégies standards
+                        if (!empty($standardStrategies)): 
+                        ?>
+                        <div class="col-12 mb-3">
+                            <h4>Stratégies Standards</h4>
+                        </div>
+                        <?php 
+                        endif;
+                        
+                        // Afficher les stratégies standards
+                        foreach ($standardStrategies as $index => $strategy): 
+                        ?>
                             <div class="col-md-4 mb-4">
                                 <div class="card h-100 border-<?php echo $strategy['class']; ?> shadow">
                                     <div class="card-header bg-<?php echo $strategy['class']; ?> text-white py-2">
                                         <h5 class="mb-0"><?php echo $strategy['name']; ?> 
-                                            <span class="badge bg-light text-dark float-end">
+                                            <span class="badge  text-dark float-end">
                                                 <?php echo $strategy['rating']; ?>/10
                                             </span>
                                         </h5>
@@ -226,7 +242,59 @@ if (!isset($_SESSION['connected'])) { ?>
                                         <!-- Explication de la sélection -->
                                         <div class="small text-muted mb-2"><?php echo $strategy['description']; ?></div>
                                         
-                                        <div class="small bg-light p-2 rounded">
+                                        <div class="small  p-2 rounded">
+                                            <div class="row g-1">
+                                                <div class="col-4"><strong>Méthode:</strong></div>
+                                                <div class="col-8"><?php echo $strategy['method']; ?></div>
+                                            </div>
+                                            <div class="row g-1">
+                                                <div class="col-4"><strong>Optimale:</strong></div>
+                                                <div class="col-8"><?php echo $strategy['bestPlayCount']; ?> numéros</div>
+                                            </div>
+                                            <div class="row g-1">
+                                                <div class="col-4"><strong>Mise:</strong></div>
+                                                <div class="col-8"><?php echo $strategy['optimalBet']; ?></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                        
+                        <?php 
+                        // Afficher un titre pour les stratégies innovantes
+                        if (!empty($innovativeStrategies)): 
+                        ?>
+                        <div class="col-12 mt-4 mb-3">
+                            <h4 class="text-primary">Stratégies Innovantes <span class="badge bg-danger">Nouveau!</span></h4>
+                            <p class="small text-muted">Ces stratégies avancées analysent les données journalières avec des algorithmes plus sophistiqués.</p>
+                        </div>
+                        <?php 
+                        endif;
+                        
+                        // Afficher les stratégies innovantes
+                        foreach ($innovativeStrategies as $index => $strategy): 
+                        ?>
+                            <div class="col-md-4 mb-4">
+                                <div class="card h-100 border-<?php echo $strategy['class']; ?> shadow">
+                                    <div class="card-header bg-<?php echo $strategy['class']; ?> text-white py-2">
+                                        <h5 class="mb-0"><?php echo $strategy['name']; ?> 
+                                            <span class="badge  text-dark float-end">
+                                                <?php echo $strategy['rating']; ?>/10
+                                            </span>
+                                        </h5>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="d-flex flex-wrap mb-3 justify-content-center">
+                                            <?php foreach ($strategy['numbers'] as $num): ?>
+                                                <div class="number-badge <?php echo $strategy['class']; ?> m-1"><?php echo $num; ?></div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        
+                                        <!-- Explication de la sélection -->
+                                        <div class="small text-muted mb-2"><?php echo $strategy['description']; ?></div>
+                                        
+                                        <div class="small  p-2 rounded">
                                             <div class="row g-1">
                                                 <div class="col-4"><strong>Méthode:</strong></div>
                                                 <div class="col-8"><?php echo $strategy['method']; ?></div>
@@ -261,7 +329,7 @@ if (!isset($_SESSION['connected'])) { ?>
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <h4>Les 5 stratégies journalières</h4>
+                        <h4>Les stratégies standards</h4>
                         <ul class="list-group">
                             <li class="list-group-item">
                                 <strong>Écarts Journaliers</strong> - Numéros qui n'ont pas été tirés depuis longtemps aujourd'hui, suivant le principe qu'ils sont "dus".
@@ -281,6 +349,23 @@ if (!isset($_SESSION['connected'])) { ?>
                         </ul>
                     </div>
                     <div class="col-md-6">
+                        <h4>Les nouvelles stratégies innovantes</h4>
+                        <ul class="list-group">
+                            <li class="list-group-item list-group-item-secondary">
+                                <strong>Chaînes Séquentielles</strong> - Analyse les transitions et séquences des numéros dans l'ordre d'apparition pour détecter les patterns réguliers.
+                            </li>
+                            <li class="list-group-item list-group-item-dark">
+                                <strong>Numéros Versatiles</strong> - Identifie les numéros qui changent fréquemment de position (bleu/jaune) pour exploiter cette volatilité.
+                            </li>
+                            <li class="list-group-item list-group-item-success">
+                                <strong>Équilibre Journalier 4B-3J</strong> - Optimise la sélection pour viser le meilleur ratio bleu/jaune (4-3) selon les tendances du jour.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
                         <h4>Points forts</h4>
                         <ul class="list-group">
                             <li class="list-group-item">
@@ -293,17 +378,26 @@ if (!isset($_SESSION['connected'])) { ?>
                             </li>
                             <li class="list-group-item">
                                 <i class="fas fa-check-circle text-success me-2"></i>
-                                <strong>Diversité d'approches</strong> - Propose 5 angles d'analyse différents sur les mêmes données.
-                            </li>
-                            <li class="list-group-item">
-                                <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                                <strong>Limitation</strong> - La fiabilité dépend du nombre de tirages déjà effectués dans la journée.
+                                <strong>Diversité d'approches</strong> - Propose 8 angles d'analyse différents sur les mêmes données.
                             </li>
                             <li class="list-group-item">
                                 <i class="fas fa-sync text-info me-2"></i>
                                 <strong>Actualisation</strong> - Les stratégies évoluent automatiquement au fil de la journée.
                             </li>
                         </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Comment maximiser vos chances</h4>
+                        <div class="alert alert-success p-3">
+                            <h5><i class="fas fa-trophy me-2"></i> Conseils pour optimiser vos gains</h5>
+                            <ol class="mb-0">
+                                <li>Privilégiez la stratégie <strong>Équilibre Journalier 4B-3J</strong> qui offre le meilleur rapport probabilité/gain (note 9.0/10)</li>
+                                <li>Pour une approche différente, essayez les <strong>Chaînes Séquentielles</strong> (8.8/10) qui exploitent l'ordre d'apparition des numéros</li>
+                                <li>Préférez les mises de 6€ ou 8€ pour maximiser votre retour sur investissement</li>
+                                <li>Jouez toujours 7 numéros, jamais plus ni moins</li>
+                                <li>Les stratégies sont plus fiables en fin de journée, quand plus de tirages ont été analysés</li>
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -337,6 +337,81 @@ footer {
     letter-spacing: 0.05em;
 }
 
+/* Système de like/dislike */
+.rating-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rating-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rating-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.rating-btn i {
+    margin-right: 0.35rem;
+}
+
+.rating-btn.liked {
+    background-color: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+
+.rating-btn.disliked {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+
+.rating-stats {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+    margin-top: 0.25rem;
+}
+
+.rating-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.rating-badge.liked {
+    background-color: rgba(46, 196, 182, 0.2);
+    color: var(--success);
+}
+
+.rating-badge.disliked {
+    background-color: rgba(230, 57, 70, 0.2);
+    color: var(--danger);
+}
+
 /* Ajustements responsifs */
 @media (max-width: 767.98px) {
     .number-badge {

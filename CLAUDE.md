@@ -28,6 +28,16 @@
 - Installer les dépendances: `composer install`
 - Vérifier la syntaxe PHP: `php -l fichier.php`
 
+## Structure de l'application
+
+- `index.php` : Page principale avec les stratégies historiques
+- `daily.php` : Page des stratégies basées uniquement sur les tirages du jour
+- `src/class/TirageDataFetcher.php` : Récupération des données depuis les sources
+- `src/class/TirageStrategies.php` : Génération des stratégies basées sur l'historique
+- `src/class/TirageDailyStrategies.php` : Génération des stratégies basées sur les tirages du jour
+- `src/class/TirageVerifier.php` : Vérification de l'authenticité des données
+- `assets/` : Fichiers CSS, JS et templates
+
 ## Style de code
 
 - **Conventions de nommage**: CamelCase pour les classes, camelCase pour les méthodes/variables
@@ -41,3 +51,15 @@
 - Choisir 7 numéros parmi la combinaison de 12 numéros tirés (7 bleus + 5 jaunes)
 - Stratégies optimisées basées sur l'analyse des positions bleues/jaunes
 - Interface compacte avec système d'onglets pour afficher toutes les stratégies
+
+## Stratégies disponibles
+
+### Stratégies historiques (index.php)
+- 10 stratégies basées sur l'analyse complète de l'historique des tirages
+- Prennent en compte la fréquence d'apparition, les positions, les corrélations, etc.
+- Affichées par ordre décroissant de score (rating)
+
+### Stratégies journalières (daily.php)
+- 5 stratégies basées uniquement sur les tirages du jour courant
+- S'adaptent aux tendances spécifiques qui se développent dans la journée
+- Mise à jour automatique à chaque rafraîchissement de la page

@@ -30,10 +30,10 @@
                 
                 <div class="col-md-3 text-center text-md-end">
                     <div class="small">
-                        Développé par <a href="https://codequantum.io" class="text-decoration-none text-info">Codequantum.io</a>
+                        Développé par <a href="https://talentai.fr/code" class="text-decoration-none text-info">Antonin Nvh - TalentAI.fr</a>
                     </div>
                     <div class="mt-1 text-muted x-small">
-                        Version 2.5.0
+                        Version 3.0.0
                     </div>
                 </div>
             </div>
@@ -51,6 +51,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"
         integrity="sha512-uKQ39gEGiyUJl4AI6L+ekBdGKpGw4xJ55+xyJG7YFlJokPNYegn9KwQ3P8A7aFQAUtUsAQHep+d/lrGqrbPIDQ=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="assets/js/strategy-rating.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

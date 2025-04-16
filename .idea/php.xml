@@ -12,17 +12,58 @@
   </component>
   <component name="PhpIncludePathManager">
     <include_path>
-      <path value="$PROJECT_DIR$/vendor/composer" />
-      <path value="$PROJECT_DIR$/vendor/helgesverre/domain-availability" />
-      <path value="$PROJECT_DIR$/vendor/nette/robot-loader" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/browser-kit" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/sunra/php-simple-html-dom-parser" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/dom-crawler" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/masterminds/html5" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/polyfill-intl-idn" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/polyfill-mbstring" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/psr/log" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/mime" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/polyfill-intl-normalizer" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/polyfill-ctype" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/psr/container" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/service-contracts" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/http-client-contracts" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/nette/robot-loader" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/fabpot/goutte" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/deprecation-contracts" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/css-selector" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/symfony/http-client" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/composer" />
+      <path value="$PROJECT_DIR$/var/www/amelie/vendor/nette/utils" />
+      <path value="$PROJECT_DIR$/vendor/symfony/polyfill-intl-normalizer" />
+      <path value="$PROJECT_DIR$/vendor/symfony/dom-crawler" />
+      <path value="$PROJECT_DIR$/vendor/fabpot/goutte" />
+      <path value="$PROJECT_DIR$/vendor/symfony/mime" />
       <path value="$PROJECT_DIR$/vendor/nette/utils" />
-      <path value="$PROJECT_DIR$/vendor/jeremykendall/php-domain-parser" />
-      <path value="$PROJECT_DIR$/vendor/psr/simple-cache" />
+      <path value="$PROJECT_DIR$/vendor/sunra/php-simple-html-dom-parser" />
+      <path value="$PROJECT_DIR$/vendor/psr/container" />
+      <path value="$PROJECT_DIR$/vendor/nette/robot-loader" />
+      <path value="$PROJECT_DIR$/vendor/symfony/polyfill-intl-idn" />
+      <path value="$PROJECT_DIR$/vendor/symfony/polyfill-mbstring" />
+      <path value="$PROJECT_DIR$/vendor/symfony/http-client-contracts" />
+      <path value="$PROJECT_DIR$/vendor/symfony/http-client" />
+      <path value="$PROJECT_DIR$/vendor/symfony/browser-kit" />
+      <path value="$PROJECT_DIR$/vendor/symfony/service-contracts" />
+      <path value="$PROJECT_DIR$/vendor/symfony/css-selector" />
+      <path value="$PROJECT_DIR$/vendor/symfony/polyfill-ctype" />
+      <path value="$PROJECT_DIR$/vendor/symfony/deprecation-contracts" />
       <path value="$PROJECT_DIR$/vendor/psr/log" />
+      <path value="$PROJECT_DIR$/vendor/composer" />
+      <path value="$PROJECT_DIR$/vendor/masterminds/html5" />
     </include_path>
+  </component>
+  <component name="PhpProjectSharedConfiguration" php_language_level="8.1">
+    <option name="suggestChangeDefaultLanguageLevel" value="false" />
   </component>
   <component name="PhpStanOptionsConfiguration">
     <option name="transferred" value="true" />
+  </component>
+  <component name="PhpUnit">
+    <phpunit_settings>
+      <PhpUnitSettings custom_loader_path="$PROJECT_DIR$/vendor/autoload.php" />
+    </phpunit_settings>
   </component>
   <component name="PsalmOptionsConfiguration">
     <option name="transferred" value="true" />

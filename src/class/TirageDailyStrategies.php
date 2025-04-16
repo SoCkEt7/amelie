@@ -50,8 +50,8 @@ class TirageDailyStrategies {
      * @return array Les tirages du jour
      */
     public static function getDailyTirages($dataFetcher) {
-        // Récupérer les données de tirage
-        $historicalData = $dataFetcher->getHistoricalTirages(250); // Max 250 tirages par jour
+        // Récupérer les données de tirage - pas de limite pour avoir tous les tirages du jour
+        $historicalData = $dataFetcher->getHistoricalTirages(500); // Augmenté à 500 pour être sûr d'avoir tous les tirages
         
         // Filtrer pour ne garder que les tirages du jour (aujourd'hui)
         $today = date('Y-m-d');
@@ -59,10 +59,10 @@ class TirageDailyStrategies {
         
         if (!empty($historicalData['numbers'])) {
             // Si les tirages ont une date, filtrer par date
-            if (!empty($historicalData['timestamps'])) {
+            if (!empty($historicalData['dates'])) {
                 foreach ($historicalData['numbers'] as $index => $tirage) {
-                    $tirageDate = isset($historicalData['timestamps'][$index]) ? 
-                                  date('Y-m-d', $historicalData['timestamps'][$index]) : null;
+                    $tirageDate = isset($historicalData['dates'][$index]) ? 
+                                 $historicalData['dates'][$index] : null;
                     
                     // Conserver seulement les tirages d'aujourd'hui
                     if ($tirageDate === $today) {
@@ -70,9 +70,8 @@ class TirageDailyStrategies {
                     }
                 }
             } else {
-                // Sinon, prendre les 50 premiers tirages comme approximation des tirages du jour
-                // (Limité car on ne connaît pas exactement quels sont les tirages du jour)
-                $dailyTirages = array_slice($historicalData['numbers'], 0, 50);
+                // Si pas de dates disponibles, utiliser tous les tirages disponibles
+                $dailyTirages = $historicalData['numbers'];
             }
         }
         
@@ -103,6 +102,8 @@ class TirageDailyStrategies {
         list($blueFrequency, $yellowFrequency, $allFrequency, $lastOccurrence) = $this->analyzeData();
         $timeBasedPatterns = $this->findTimeBasedPatterns();
         $correlations = $this->calculateCorrelations();
+        $sequences = $this->analyzeSequences();
+        $positionPatterns = $this->analyzePositionPatterns();
         
         // Générer les stratégies basées sur les analyses
         $this->strategies[] = $this->generateGapStrategy($lastOccurrence);
@@ -110,6 +111,11 @@ class TirageDailyStrategies {
         $this->strategies[] = $this->generateIntradayTrendStrategy($blueFrequency, $yellowFrequency);
         $this->strategies[] = $this->generateStablePositionStrategy($blueFrequency, $yellowFrequency);
         $this->strategies[] = $this->generateDailyClusterStrategy($correlations);
+        
+        // Nouvelles stratégies innovantes
+        $this->strategies[] = $this->generateSequentialPatternStrategy($sequences);
+        $this->strategies[] = $this->generatePositionTransitionStrategy($positionPatterns);
+        $this->strategies[] = $this->generateBlueYellowBalanceStrategy($blueFrequency, $yellowFrequency, $allFrequency);
         
         // Trier les stratégies par note (rating) décroissante
         usort($this->strategies, function($a, $b) {
@@ -465,6 +471,348 @@ class TirageDailyStrategies {
             'method' => 'Analyse des corrélations intraday',
             'bestPlayCount' => self::PLAYER_PICK,
             'optimalBet' => '4€'
+        ];
+    }
+    
+    /**
+     * Analyse les séquences ordonnées dans les tirages du jour
+     * 
+     * @return array Séquences et modèles détectés
+     */
+    private function analyzeSequences() {
+        $sequenceData = [
+            'transitions' => array_fill(1, self::MAX_NUM, array_fill(1, self::MAX_NUM, 0)),
+            'startFrequency' => array_fill(1, self::MAX_NUM, 0),
+            'endFrequency' => array_fill(1, self::MAX_NUM, 0),
+            'patterns' => []
+        ];
+        
+        // Analyser chaque tirage pour détecter les modèles séquentiels
+        foreach ($this->dailyTirages as $tirage) {
+            $allNums = [];
+            
+            // Extraire tous les numéros du tirage en préservant l'ordre
+            if (isset($tirage['blue']) && is_array($tirage['blue'])) {
+                $allNums = array_merge($allNums, $tirage['blue']);
+            }
+            if (isset($tirage['yellow']) && is_array($tirage['yellow'])) {
+                $allNums = array_merge($allNums, $tirage['yellow']);
+            }
+            
+            // Analyser les transitions entre numéros successifs
+            for ($i = 0; $i < count($allNums) - 1; $i++) {
+                $current = $allNums[$i];
+                $next = $allNums[$i + 1];
+                
+                if ($current >= 1 && $current <= self::MAX_NUM && $next >= 1 && $next <= self::MAX_NUM) {
+                    $sequenceData['transitions'][$current][$next]++;
+                }
+            }
+            
+            // Enregistrer les fréquences de début et de fin
+            if (!empty($allNums)) {
+                $first = $allNums[0];
+                $last = $allNums[count($allNums) - 1];
+                
+                if ($first >= 1 && $first <= self::MAX_NUM) {
+                    $sequenceData['startFrequency'][$first]++;
+                }
+                
+                if ($last >= 1 && $last <= self::MAX_NUM) {
+                    $sequenceData['endFrequency'][$last]++;
+                }
+            }
+            
+            // Détecter les modèles (comme séquences croissantes/décroissantes ou alternances pair/impair)
+            $pattern = $this->detectSequencePattern($allNums);
+            if (!empty($pattern)) {
+                $sequenceData['patterns'][] = $pattern;
+            }
+        }
+        
+        return $sequenceData;
+    }
+    
+    /**
+     * Détecte les modèles dans une séquence de numéros
+     * 
+     * @param array $sequence Séquence de numéros
+     * @return array Modèles détectés
+     */
+    private function detectSequencePattern($sequence) {
+        $patterns = [];
+        
+        // Vérifier si la séquence est suffisamment longue
+        if (count($sequence) < 3) {
+            return $patterns;
+        }
+        
+        // Vérifier les croissances/décroissances
+        $increasing = true;
+        $decreasing = true;
+        $alternating = true;
+        
+        for ($i = 1; $i < count($sequence); $i++) {
+            if ($sequence[$i] <= $sequence[$i-1]) {
+                $increasing = false;
+            }
+            if ($sequence[$i] >= $sequence[$i-1]) {
+                $decreasing = false;
+            }
+            if ($i > 1) {
+                // Vérifier alternance haut/bas
+                $prev_diff = $sequence[$i-1] - $sequence[$i-2];
+                $curr_diff = $sequence[$i] - $sequence[$i-1];
+                
+                if (($prev_diff > 0 && $curr_diff > 0) || ($prev_diff < 0 && $curr_diff < 0)) {
+                    $alternating = false;
+                }
+            }
+        }
+        
+        if ($increasing) {
+            $patterns['type'] = 'increasing';
+        } elseif ($decreasing) {
+            $patterns['type'] = 'decreasing';
+        } elseif ($alternating) {
+            $patterns['type'] = 'alternating';
+        }
+        
+        // Vérifier la parité (pairs/impairs)
+        $evens = 0;
+        $odds = 0;
+        
+        foreach ($sequence as $num) {
+            if ($num % 2 == 0) {
+                $evens++;
+            } else {
+                $odds++;
+            }
+        }
+        
+        $patterns['parity'] = [
+            'evens' => $evens,
+            'odds' => $odds,
+            'ratio' => $evens / max(1, count($sequence))
+        ];
+        
+        return $patterns;
+    }
+    
+    /**
+     * Analyse les patterns liés aux positions (bleu/jaune) dans les tirages du jour
+     * 
+     * @return array Données des patterns de position
+     */
+    private function analyzePositionPatterns() {
+        $positionData = [
+            'blueToYellow' => array_fill(1, self::MAX_NUM, 0),  // Numéros qui changent de bleu à jaune
+            'yellowToBlue' => array_fill(1, self::MAX_NUM, 0),  // Numéros qui changent de jaune à bleu
+            'positionChanges' => array_fill(1, self::MAX_NUM, 0), // Nombre total de changements de position
+            'stableBlue' => array_fill(1, self::MAX_NUM, 0),    // Numéros stables en position bleue
+            'stableYellow' => array_fill(1, self::MAX_NUM, 0),  // Numéros stables en position jaune
+        ];
+        
+        $previousPositions = [];  // Dernière position connue pour chaque numéro (blue/yellow)
+        
+        // Analyser chaque tirage pour suivre les changements de position
+        foreach ($this->dailyTirages as $tirage) {
+            $currentPositions = [];
+            
+            // Enregistrer les positions bleues
+            if (isset($tirage['blue']) && is_array($tirage['blue'])) {
+                foreach ($tirage['blue'] as $num) {
+                    if ($num >= 1 && $num <= self::MAX_NUM) {
+                        $currentPositions[$num] = 'blue';
+                        
+                        // Analyser les changements par rapport au tirage précédent
+                        if (isset($previousPositions[$num])) {
+                            if ($previousPositions[$num] == 'yellow') {
+                                $positionData['yellowToBlue'][$num]++;
+                                $positionData['positionChanges'][$num]++;
+                            } else {
+                                $positionData['stableBlue'][$num]++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Enregistrer les positions jaunes
+            if (isset($tirage['yellow']) && is_array($tirage['yellow'])) {
+                foreach ($tirage['yellow'] as $num) {
+                    if ($num >= 1 && $num <= self::MAX_NUM) {
+                        $currentPositions[$num] = 'yellow';
+                        
+                        // Analyser les changements par rapport au tirage précédent
+                        if (isset($previousPositions[$num])) {
+                            if ($previousPositions[$num] == 'blue') {
+                                $positionData['blueToYellow'][$num]++;
+                                $positionData['positionChanges'][$num]++;
+                            } else {
+                                $positionData['stableYellow'][$num]++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Mettre à jour les positions précédentes pour le prochain tirage
+            $previousPositions = $currentPositions;
+        }
+        
+        return $positionData;
+    }
+    
+    /**
+     * 6. Stratégie des Modèles Séquentiels
+     * Analyse les séquences et transitions entre numéros dans l'ordre d'apparition
+     * 
+     * @param array $sequences Données de séquence analysées
+     * @return array Stratégie basée sur les séquences
+     */
+    private function generateSequentialPatternStrategy($sequences) {
+        // Analyser les transitions entre numéros pour trouver des chaînes probables
+        $transitionScores = [];
+        
+        // Calculer un score basé sur les transitions et les positions de début/fin
+        for ($num = 1; $num <= self::MAX_NUM; $num++) {
+            // Score basé sur la fréquence comme numéro de départ
+            $startScore = isset($sequences['startFrequency'][$num]) ? $sequences['startFrequency'][$num] * 3 : 0;
+            
+            // Score basé sur la force des transitions depuis ce numéro
+            $transitionScore = 0;
+            for ($next = 1; $next <= self::MAX_NUM; $next++) {
+                $transitionScore += isset($sequences['transitions'][$num][$next]) ? 
+                                  $sequences['transitions'][$num][$next] : 0;
+            }
+            
+            // Score basé sur les transitions vers ce numéro
+            $incomingScore = 0;
+            for ($prev = 1; $prev <= self::MAX_NUM; $prev++) {
+                $incomingScore += isset($sequences['transitions'][$prev][$num]) ? 
+                                 $sequences['transitions'][$prev][$num] : 0;
+            }
+            
+            // Score composite
+            $transitionScores[$num] = $startScore + $transitionScore + $incomingScore;
+        }
+        
+        // Trier par score décroissant
+        arsort($transitionScores);
+        
+        // Sélectionner les 7 numéros avec les meilleurs scores de transition
+        $selectedNumbers = array_slice(array_keys($transitionScores), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Chaînes Séquentielles',
+            'description' => 'Numéros formant des séquences fortes dans l\'ordre d\'apparition du tirage',
+            'numbers' => $selectedNumbers,
+            'rating' => 8.8,
+            'class' => 'secondary',
+            'method' => 'Analyse des transitions et séquences ordonnées',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '6€'
+        ];
+    }
+    
+    /**
+     * 7. Stratégie des Transitions de Position
+     * Exploite les numéros qui changent régulièrement de position (bleu/jaune)
+     * 
+     * @param array $positionPatterns Données d'analyse des positions
+     * @return array Stratégie basée sur les transitions de position
+     */
+    private function generatePositionTransitionStrategy($positionPatterns) {
+        // Préférer les numéros qui changent fréquemment de position
+        $transitionScores = [];
+        
+        for ($num = 1; $num <= self::MAX_NUM; $num++) {
+            // Calculer un score basé sur la fréquence des changements
+            $changeScore = isset($positionPatterns['positionChanges'][$num]) ? 
+                         $positionPatterns['positionChanges'][$num] * 2 : 0;
+                         
+            // Ajouter un bonus pour les transitions bleu->jaune (généralement plus rares)
+            $blueToYellowBonus = isset($positionPatterns['blueToYellow'][$num]) ? 
+                              $positionPatterns['blueToYellow'][$num] * 1.5 : 0;
+                              
+            // Score composite
+            $transitionScores[$num] = $changeScore + $blueToYellowBonus;
+        }
+        
+        // Trier par score décroissant
+        arsort($transitionScores);
+        
+        // Sélectionner les 7 numéros avec les meilleurs scores de transition
+        $selectedNumbers = array_slice(array_keys($transitionScores), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Numéros Versatiles',
+            'description' => 'Numéros qui alternent fréquemment entre positions bleue et jaune',
+            'numbers' => $selectedNumbers,
+            'rating' => 8.6,
+            'class' => 'dark',
+            'method' => 'Analyse des transitions de position bleu/jaune',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '6€'
+        ];
+    }
+    
+    /**
+     * 8. Stratégie d'Équilibre Bleu-Jaune
+     * Vise une répartition optimale entre positions bleues et jaunes
+     * 
+     * @param array $blueFrequency Fréquence des numéros bleus
+     * @param array $yellowFrequency Fréquence des numéros jaunes
+     * @param array $allFrequency Fréquence totale des numéros
+     * @return array Stratégie basée sur l'équilibre des positions
+     */
+    private function generateBlueYellowBalanceStrategy($blueFrequency, $yellowFrequency, $allFrequency) {
+        // Le but est de sélectionner les numéros pour obtenir une combinaison
+        // avec un rapport optimal entre bleus et jaunes (4B-3J) pour maximiser les chances de gain
+        
+        // Normaliser les fréquences pour obtenir des probabilités
+        $blueProb = [];
+        $yellowProb = [];
+        $totalBlue = array_sum($blueFrequency);
+        $totalYellow = array_sum($yellowFrequency);
+        
+        for ($num = 1; $num <= self::MAX_NUM; $num++) {
+            $blueProb[$num] = $totalBlue > 0 ? $blueFrequency[$num] / $totalBlue : 0;
+            $yellowProb[$num] = $totalYellow > 0 ? $yellowFrequency[$num] / $totalYellow : 0;
+        }
+        
+        // Calculer un score d'équilibre optimal pour chaque numéro
+        $balanceScores = [];
+        
+        for ($num = 1; $num <= self::MAX_NUM; $num++) {
+            // La stratégie vise à sélectionner les 4 meilleurs numéros bleus et les 3 meilleurs jaunes
+            // Pondérer le score en fonction de la probabilité d'apparition en position bleue/jaune
+            $bluePotential = $blueProb[$num] * 4; // Pondération pour les 4 positions bleues
+            $yellowPotential = $yellowProb[$num] * 3; // Pondération pour les 3 positions jaunes
+            
+            // Score final d'équilibre, favorisant la position la plus probable
+            $balanceScores[$num] = max($bluePotential, $yellowPotential) * ($allFrequency[$num] + 1);
+        }
+        
+        // Trier par score décroissant
+        arsort($balanceScores);
+        
+        // Sélectionner les 7 numéros avec les meilleurs scores d'équilibre
+        $selectedNumbers = array_slice(array_keys($balanceScores), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Équilibre Journalier 4B-3J',
+            'description' => 'Numéros optimisés pour une combinaison gagnante 4 bleus, 3 jaunes selon les tendances du jour',
+            'numbers' => $selectedNumbers,
+            'rating' => 9.0,
+            'class' => 'success',
+            'method' => 'Optimisation de la distribution bleu/jaune pour le jour',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '8€'
         ];
     }
 }

@@ -168,7 +168,7 @@ if (!isset($_SESSION['connected'])) { ?>
                                                 <div class="accordion accordion-flush" id="accordionStrat<?php echo $index; ?>">
                                                     <div class="accordion-item">
                                                         <h2 class="accordion-header">
-                                                            <button class="accordion-button collapsed bg-light p-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo $index; ?>">
+                                                            <button class="accordion-button collapsed p-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse<?php echo $index; ?>">
                                                                 <small><i class="fas fa-lightbulb text-<?php echo $strategy['class']; ?> me-2"></i> Pourquoi ces numéros ?</small>
                                                             </button>
                                                         </h2>
