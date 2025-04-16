@@ -1,40 +1,41 @@
-# Amélie - Générateur de tirages optimisés
+# Amélie - Analyse de tirages Amigo
+
+Application PHP pour analyser les tirages du jeu Amigo et générer des stratégies de jeu optimisées.
+
+## Version simplifiée
+
+Cette branche contient une version simplifiée de l'application qui :
+- Récupère directement les données depuis les sources officielles
+- Ne nécessite pas de cache ni de cron jobs
+- Génère des analyses et recommandations en temps réel
+
+## Fonctionnalités
+
+- Affichage des derniers tirages (numéros bleus et jaunes)
+- Génération de 12 stratégies différentes pour optimiser les chances de gain
+- Visualisation des statistiques de fréquence d'apparition
+- Tableau des gains avec probabilités
 
 ## Installation
 
 1. Cloner le dépôt
-2. Installer les dépendances via Composer
-   ```
-   composer install
-   ```
-3. Configurer le fichier de démarrage `src/startup.php` avec les paramètres de votre environnement
+2. Installer les dépendances : `composer install`
+3. S'assurer que l'extension php-curl est activée
+4. Lancer un serveur PHP : `php -S localhost:8000`
 
-## Initialisation du cache
+## Utilisation
 
-Pour optimiser les performances, il est recommandé d'initialiser le cache avant la première utilisation :
+1. Accéder à l'application via un navigateur
+2. Se connecter avec le mot de passe configuré
+3. Consulter les derniers tirages et les stratégies recommandées
 
-```
-php init_cache.php
-```
+## Structure du code
 
-Ce script va créer un cache initial avec les 1000 derniers résultats de tirages.
+- `index.php` : Point d'entrée principal
+- `src/class/TirageDataFetcher.php` : Récupération des données depuis les sources
+- `src/class/TirageStrategies.php` : Génération des stratégies de jeu
+- `assets/` : Fichiers CSS, JS et templates
 
-## Maintenance du cache
+## Règles du jeu
 
-Pour maintenir les données à jour sans surcharger le site lors des chargements, configurez un cron job pour mettre à jour les données en arrière-plan 2 fois par jour :
-
-```
-# Ajouter cette ligne à votre crontab
-0 */12 * * * php /chemin/vers/amelie/cron_update_data.php
-```
-
-Cette configuration permet :
-1. Un chargement initial rapide (moins de 1000 résultats au lieu de 3000+)
-2. Une mise à jour régulière des données en arrière-plan
-3. Une expérience utilisateur optimisée
-
-## Structure des données
-
-- Les données récentes (`recent_tirages`) sont mises en cache pour une durée de 3 jours
-- Les données historiques (`historical_tirages_X`) où X est la limite (ex: 1000) sont mises en cache pour 3 jours
-- Les données étendues (`extended_historical_data`) combinent plusieurs sources pour des analyses plus riches
+Le jeu Amigo consiste à choisir 7 numéros parmi une combinaison de 12 numéros (7 bleus et 5 jaunes) tirés au sort.
