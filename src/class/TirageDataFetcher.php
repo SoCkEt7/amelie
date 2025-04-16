@@ -48,8 +48,10 @@ class TirageDataFetcher {
                 throw new Exception("ERREUR CRITIQUE: Goutte\Client n'est pas disponible. Exécutez 'composer require fabpot/goutte' pour l'installer.");
             }
             
-            // Mode production avec client web
+            // Mode production avec client web - TOUJOURS utiliser des données réelles selon CLAUDE.md
+            error_log("Récupération des données officielles depuis tirage-gagnant.com/amigo/...");
             $crawler = $this->client->request('GET', 'https://tirage-gagnant.com/amigo/');
+            error_log("Page récupérée, analyse du contenu...");
             
             // Initialiser les tableaux pour les numéros bleus et jaunes
             $blueNumbers = [];
@@ -58,12 +60,38 @@ class TirageDataFetcher {
             // Récupérer tous les numéros avec gestion d'erreurs
             $allNumbers = [];
             try {
+                // Récupérer les numéros du dernier tirage avec le sélecteur principal
+                $allNumbers = [];
                 $crawler->filter('.num, .chance')->each(function ($node) use (&$allNumbers) {
                     $text = $node->text();
-                    if (is_numeric($text)) {
+                    if (is_numeric($text) && (int)$text >= 1 && (int)$text <= 28) {
                         $allNumbers[] = (int)$text;
                     }
                 });
+                
+                // Vérifier que nous avons suffisamment de numéros
+                if (count($allNumbers) < TirageStrategies::TIRAGE_SIZE) {
+                    // Essayer un autre sélecteur
+                    $tempNumbers = [];
+                    $crawler->filter('span[class*="num"]')->each(function ($node) use (&$tempNumbers) {
+                        $text = $node->text();
+                        if (is_numeric($text) && (int)$text >= 1 && (int)$text <= 28) {
+                            $tempNumbers[] = (int)$text;
+                        }
+                    });
+                    
+                    // Si le second sélecteur trouve des numéros, les utiliser
+                    if (count($tempNumbers) >= TirageStrategies::TIRAGE_SIZE) {
+                        $allNumbers = array_slice($tempNumbers, 0, TirageStrategies::TIRAGE_SIZE);
+                        error_log("Récupération réussie avec le sélecteur secondaire: " . count($allNumbers) . " numéros");
+                    } else {
+                        // Si nous n'avons toujours pas assez de numéros, c'est une erreur critique
+                        error_log("ERREUR : Impossible de récupérer suffisamment de numéros de tirage officiels");
+                        throw new Exception("Impossible de récupérer les numéros officiels du tirage. Veuillez vérifier la connexion au site tirage-gagnant.com.");
+                    }
+                } else {
+                    error_log("Récupération réussie : " . count($allNumbers) . " numéros officiels trouvés");
+                }
             } catch (\Exception $e) {
                 // En cas d'erreur, lancer une exception
                 error_log("Erreur lors de l'extraction des numéros: " . $e->getMessage());
@@ -147,17 +175,70 @@ class TirageDataFetcher {
             
             // Mode production avec client web
             // Pour les données historiques, on utilise reducmiz.com qui permet d'avoir plus de tirages
-            $crawler = $this->client->request('GET', 'https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=all');
+            error_log("Récupération des données historiques depuis reducmiz.com...");
             
-            $allNumbers = [];
+            // La source principale pour les données historiques est reducmiz.com
+            $source = 'https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=all';
+            $sourceSite = $source;
             
-            // Extraire tous les numéros avec regex
-            $crawler->filter('.bs-docs-section font')->each(function ($node, $i) use (&$allNumbers) {
-                preg_match_all('/\d+/', $node->text(), $matches);
-                if (!empty($matches[0])) {
-                    $allNumbers[] = $matches[0];
+            error_log("Récupération des données historiques depuis $source...");
+            
+            try {
+                $crawler = $this->client->request('GET', $source);
+                
+                // Récupérer les données avec le sélecteur spécifique à reducmiz.com
+                $allNumbers = [];
+                $crawler->filter('.bs-docs-section font')->each(function ($node) use (&$allNumbers) {
+                    preg_match_all('/\d+/', $node->text(), $matches);
+                    if (!empty($matches[0])) {
+                        $allNumbers[] = $matches[0];
+                    }
+                });
+                
+                // Vérifier si nous avons récupéré des données
+                if (empty($allNumbers)) {
+                    error_log("Aucune donnée trouvée sur reducmiz.com, essai de la source de secours.");
+                    
+                    // Source de secours : tirage-gagnant.com
+                    $backupSource = 'https://tirage-gagnant.com/amigo/';
+                    error_log("Tentative de récupération depuis $backupSource...");
+                    
+                    $crawler = $this->client->request('GET', $backupSource);
+                    $sourceSite = $backupSource;
+                    
+                    // Récupérer les historiques disponibles sur tirage-gagnant.com
+                    $allNumbers = [];
+                    $crawler->filter('.historique-tirages tr, .resultats-tirage').each(function ($node) use (&$allNumbers) {
+                        $tirage = [];
+                        $node->filter('.num, .chance, td:not(.date)')->each(function ($numNode) use (&$tirage) {
+                            $text = trim($numNode->text());
+                            if (preg_match('/^\d+$/', $text) && (int)$text >= 1 && (int)$text <= 28) {
+                                $tirage[] = (int)$text;
+                            }
+                        });
+                        
+                        if (count($tirage) > 0) {
+                            $allNumbers[] = $tirage;
+                        }
+                    });
+                    
+                    // Si toujours aucune donnée, c'est une erreur critique
+                    if (empty($allNumbers)) {
+                        error_log("ERREUR : Aucune donnée historique trouvée sur les sources officielles");
+                        throw new Exception("Impossible de récupérer les données historiques officielles. Veuillez vérifier votre connexion internet.");
+                    }
                 }
-            });
+                
+                error_log("Données historiques récupérées avec succès: " . count($allNumbers) . " groupes de numéros");
+            } catch (\Exception $e) {
+                error_log("Erreur lors de la récupération des données historiques: " . $e->getMessage());
+                throw new Exception("Impossible de récupérer les données historiques officielles: " . $e->getMessage());
+            }
+            
+            if (empty($allNumbers)) {
+                error_log("Aucune donnée historique trouvée dans toutes les sources");
+                throw new Exception("Impossible de récupérer les données historiques. Veuillez vérifier votre connexion internet.");
+            }
             
             // Aplatir le tableau et convertir en nombres avec gestion d'erreurs
             $allNumsFlat = [];
