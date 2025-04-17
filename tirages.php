@@ -84,6 +84,25 @@ if (!isset($_SESSION['connected'])) { ?>
     $end_time = microtime(true);
     $loading_time = round($end_time - $start_time, 2);
     
+    // Sauvegarder les données dans un fichier JSON
+    $tiragesData = [];
+    $dataType = "";
+    
+    if ($source === 'recent' && isset($recentData['numSortis'])) {
+        $tiragesData = $recentData;
+        $dataType = "recent";
+    } elseif (isset($historicalData['numbers']) && !empty($historicalData['numbers'])) {
+        $tiragesData = $historicalData;
+        $dataType = $source === 'extended' ? "extended" : "historical";
+    }
+    
+    if (!empty($tiragesData)) {
+        $date = date('Y-m-d');
+        $hour = date('H');
+        $filename = "/home/antonin/app/otherProjects/server/amelie/tirages/{$date}_{$hour}_{$dataType}.json";
+        file_put_contents($filename, json_encode($tiragesData, JSON_PRETTY_PRINT));
+    }
+    
     ?>
     
     <div class="container mt-4">
