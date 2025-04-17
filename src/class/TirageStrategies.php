@@ -94,10 +94,34 @@ class TirageStrategies {
         $this->strategies[] = $this->generateClustersStrategy($numbers);
         $this->strategies[] = $this->generateMixedProbabilityStrategy($blueFrequency, $yellowFrequency, $frequency);
         
+        // Ajouter la meilleure stratégie IA v2
+        $this->strategies[] = $this->generateIAv2Strategy();
+        
         // Trier les stratégies par note (rating) décroissante
         usort($this->strategies, function($a, $b) {
             return $b['rating'] <=> $a['rating'];
         });
+    }
+    
+    /**
+     * Stratégie IA v2 - utilise le meilleur choix de l'AIStrategyManager
+     * 
+     * @return array Stratégie basée sur l'IA
+     */
+    private function generateIAv2Strategy() {
+        // Utiliser AIStrategyManager pour obtenir la meilleure stratégie
+        $bestPick = AIStrategyManager::bestPick();
+        
+        return [
+            'name' => 'IA v2',
+            'description' => 'Combinaison optimale sélectionnée par intelligence artificielle (' . $bestPick['label'] . ')',
+            'numbers' => $bestPick['numbers'],
+            'rating' => 9.2, // Note élevée pour cette stratégie avancée
+            'class' => 'info',
+            'method' => 'Intelligence artificielle',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '8€'
+        ];
     }
     
     /**

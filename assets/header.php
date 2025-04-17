@@ -52,6 +52,9 @@ include('src/startup.php'); ?>
                     <a href="daily.php" class="btn btn-sm btn-outline-danger me-1">
                         <i class="fas fa-calendar-day me-1"></i>Stratégies du jour
                     </a>
+                    <a href="ai.php" class="btn btn-sm btn-outline-info me-1">
+                        <i class="fas fa-robot me-1"></i>Stratégies IA - toutes les données
+                    </a>
                     <a href="tirages.php" class="btn btn-sm btn-outline-success me-1">
                         <i class="fas fa-history me-1"></i>Historique
                     </a>
