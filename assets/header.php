@@ -18,6 +18,9 @@ include('src/startup.php'); ?>
     <link rel="icon" href="./assets/images/favicon.png" type="image/x-icon">
 </head>
 <body data-bs-theme="dark">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyK/z0slaEqUKRy0R1m53" 
+            crossorigin="anonymous"></script>
 
 <?php if (isset($cacheWarning)): ?>
 <div class="alert alert-warning m-0 border-0 rounded-0">
@@ -45,7 +48,7 @@ include('src/startup.php'); ?>
             
             <?php if (isset($_SESSION['connected'])): ?>
             <div class="d-flex align-items-center">
-                <div class="me-3">
+                <div class="d-none d-md-flex me-3">
                     <a href="index.php" class="btn btn-sm btn-outline-primary me-1">
                         <i class="fas fa-home me-1"></i>Accueil
                     </a>
@@ -53,15 +56,45 @@ include('src/startup.php'); ?>
                         <i class="fas fa-calendar-day me-1"></i>Stratégies du jour
                     </a>
                     <a href="ai.php" class="btn btn-sm btn-outline-info me-1">
-                        <i class="fas fa-robot me-1"></i>Stratégies IA - toutes les données
+                        <i class="fas fa-robot me-1"></i>Stratégies IA
                     </a>
                     <a href="tirages.php" class="btn btn-sm btn-outline-success me-1">
                         <i class="fas fa-history me-1"></i>Historique
                     </a>
                 </div>
-                <a href="?logout" class="btn btn-sm btn-outline-danger">
+                <div class="d-md-none">
+                    <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-controls="mobileMenu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                <a href="?logout" class="btn btn-sm btn-outline-danger ms-2">
                     <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
                 </a>
+            </div>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['connected'])): ?>
+            <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
+                <div class="offcanvas-header">
+                    <h5 class="offcanvas-title" id="mobileMenuLabel">Menu</h5>
+                    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body">
+                    <div class="d-grid gap-3">
+                        <a href="index.php" class="btn btn-outline-primary">
+                            <i class="fas fa-home me-2"></i>Accueil
+                        </a>
+                        <a href="daily.php" class="btn btn-outline-danger">
+                            <i class="fas fa-calendar-day me-2"></i>Stratégies du jour
+                        </a>
+                        <a href="ai.php" class="btn btn-outline-info">
+                            <i class="fas fa-robot me-2"></i>Stratégies IA - toutes les données
+                        </a>
+                        <a href="tirages.php" class="btn btn-outline-success">
+                            <i class="fas fa-history me-2"></i>Historique
+                        </a>
+                    </div>
+                </div>
             </div>
             <?php endif; ?>
         </div>
