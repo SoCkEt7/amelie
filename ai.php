@@ -68,7 +68,8 @@ include('assets/header.php');
                             $blueNumbers = [];
                             $yellowNumbers = [];
                             
-                            $recentData = TirageDataFetcher::getRecentTirages();
+                            $dataFetcher = new TirageDataFetcher();
+                            $recentData = $dataFetcher->getRecentTirages();
                             if (isset($recentData['numSortis']) && !empty($recentData['numSortis'])) {
                                 $blueNumbers = isset($recentData['numSortis']['blue']) ? $recentData['numSortis']['blue'] : [];
                                 $yellowNumbers = isset($recentData['numSortis']['yellow']) ? $recentData['numSortis']['yellow'] : [];

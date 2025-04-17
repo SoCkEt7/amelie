@@ -19,6 +19,9 @@ class AIStrategyManager
     {
         $strategies = [];
         
+        // Instancier TirageDataFetcher une seule fois pour toutes les stratégies
+        $dataFetcher = new TirageDataFetcher();
+        
         // Instancier et récupérer les résultats de chaque stratégie
         $strategies[] = (new BayesianEVStrategy())->generate();
         $strategies[] = (new MarkovROIStrategy())->generate();
