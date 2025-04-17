@@ -85,7 +85,30 @@ class TirageDataset
     public static function getAllTirages()
     {
         $data = self::loadTirages();
-        return isset($data['numbers']) ? $data['numbers'] : [];
+        
+        // Vérifier si les données sont au format attendu
+        if (isset($data['numbers'])) {
+            return $data['numbers'];
+        }
+        
+        // Si le format est différent, essayer d'autres formats connus
+        if (isset($data) && is_array($data)) {
+            // Si c'est déjà un tableau de tirages
+            if (isset($data[0]) && (isset($data[0]['blue']) || isset($data[0]['all']))) {
+                return $data;
+            }
+        }
+        
+        // En dernier recours, essayer de récupérer les données via TirageDataFetcher
+        $fetcher = new TirageDataFetcher();
+        $historicalData = $fetcher->getHistoricalTirages(500);
+        
+        if (isset($historicalData['numbers'])) {
+            return $historicalData['numbers'];
+        }
+        
+        // Si aucune donnée n'est trouvée, retourner un tableau vide
+        return [];
     }
     
     /**

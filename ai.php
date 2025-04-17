@@ -1,14 +1,31 @@
 <?php
 require_once 'src/startup.php';
 
+// Activer l'affichage des erreurs pour le débogage
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Vérifier si l'utilisateur est connecté
 if (!isset($_SESSION['connected'])) {
     header('Location: index.php');
     exit();
 }
 
-// Récupérer toutes les stratégies IA
-$strategies = AIStrategyManager::generateAll();
+// Afficher les classes disponibles pour le débogage
+echo "<!-- Classes chargées: " . implode(", ", get_declared_classes()) . " -->";
+
+// Vérifier que la classe existe
+if (!class_exists('AIStrategyManager')) {
+    die("Erreur: La classe AIStrategyManager n'est pas disponible.");
+}
+
+try {
+    // Récupérer toutes les stratégies IA
+    $strategies = AIStrategyManager::generateAll();
+} catch (Exception $e) {
+    die("Erreur lors de la génération des stratégies IA: " . $e->getMessage());
+}
 
 // Inclure le header
 $pageTitle = "Stratégies IA - toutes les données";
