@@ -26,7 +26,7 @@ class TirageDataFetcher {
      */
     public function getRecentTirages() {
         
-        // Récupérer depuis le site officiel
+        // Récupérer depuis le site officiel reducmiz.com
         $numSortis = [];
         $numSortisB = [];
         
@@ -39,9 +39,10 @@ class TirageDataFetcher {
                 throw new Exception("ERREUR CRITIQUE: Goutte\Client n'est pas disponible. Exécutez 'composer require fabpot/goutte' pour l'installer.");
             }
             
-            // Mode production avec client web - TOUJOURS utiliser des données réelles selon CLAUDE.md
-            error_log("Récupération des données officielles depuis tirage-gagnant.com/amigo/...");
-            $crawler = $this->client->request('GET', 'https://tirage-gagnant.com/amigo/');
+            // Mode production avec client web - TOUJOURS utiliser reducmiz.com comme source principale
+            error_log("Récupération des données officielles depuis reducmiz.com...");
+            $source = 'https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=all';
+            $crawler = $this->client->request('GET', $source);
             error_log("Page récupérée, analyse du contenu...");
             
             // Initialiser les tableaux pour les numéros bleus et jaunes
@@ -51,37 +52,97 @@ class TirageDataFetcher {
             // Récupérer tous les numéros avec gestion d'erreurs
             $allNumbers = [];
             try {
-                // Récupérer les numéros du dernier tirage avec le sélecteur principal
+                // Récupérer les tables de résultats qui contiennent les tirages
                 $allNumbers = [];
-                $crawler->filter('.num, .chance')->each(function ($node) use (&$allNumbers) {
-                    $text = $node->text();
-                    if (is_numeric($text) && (int)$text >= 1 && (int)$text <= 28) {
-                        $allNumbers[] = (int)$text;
-                    }
-                });
+                error_log("Recherche des tables de résultats...");
                 
-                // Vérifier que nous avons suffisamment de numéros
-                if (count($allNumbers) < TirageStrategies::TIRAGE_SIZE) {
-                    // Essayer un autre sélecteur
-                    $tempNumbers = [];
-                    $crawler->filter('span[class*="num"]')->each(function ($node) use (&$tempNumbers) {
-                        $text = $node->text();
-                        if (is_numeric($text) && (int)$text >= 1 && (int)$text <= 28) {
-                            $tempNumbers[] = (int)$text;
+                // Sélectionner toutes les tables de la page
+                $crawler->filter('table.table')->each(function ($table) use (&$allNumbers) {
+                    $blueNumbers = [];
+                    $yellowNumbers = [];
+                    
+                    // Rechercher la ligne des numéros bleus (avec bgcolor="#00008B")
+                    $table->filter('tr td[bgcolor="#00008B"]')->each(function ($blueCell) use (&$blueNumbers) {
+                        preg_match_all('/\d+/', $blueCell->text(), $matches);
+                        if (!empty($matches[0])) {
+                            $blueNumbers = array_map('intval', $matches[0]);
+                            error_log("Numéros bleus trouvés: " . implode(", ", $blueNumbers));
                         }
                     });
                     
-                    // Si le second sélecteur trouve des numéros, les utiliser
-                    if (count($tempNumbers) >= TirageStrategies::TIRAGE_SIZE) {
-                        $allNumbers = array_slice($tempNumbers, 0, TirageStrategies::TIRAGE_SIZE);
-                        error_log("Récupération réussie avec le sélecteur secondaire: " . count($allNumbers) . " numéros");
-                    } else {
-                        // Si nous n'avons toujours pas assez de numéros, c'est une erreur critique
-                        error_log("ERREUR : Impossible de récupérer suffisamment de numéros de tirage officiels");
-                        throw new Exception("Impossible de récupérer les numéros officiels du tirage. Veuillez vérifier la connexion au site tirage-gagnant.com.");
+                    // Rechercher la ligne des numéros jaunes (avec bgcolor="#008B00")
+                    $table->filter('tr td[bgcolor="#008B00"]')->each(function ($yellowCell) use (&$yellowNumbers) {
+                        preg_match_all('/\d+/', $yellowCell->text(), $matches);
+                        if (!empty($matches[0])) {
+                            $yellowNumbers = array_map('intval', $matches[0]);
+                            error_log("Numéros jaunes trouvés: " . implode(", ", $yellowNumbers));
+                        }
+                    });
+                    
+                    // Si on a trouvé à la fois des numéros bleus et jaunes, c'est un tirage valide
+                    if (!empty($blueNumbers) && !empty($yellowNumbers)) {
+                        $allNumbers[] = array_merge($blueNumbers, $yellowNumbers);
                     }
+                });
+                
+                // Si aucune table n'est trouvée, essayer une approche plus générique
+                if (empty($allNumbers)) {
+                    error_log("Aucune table trouvée, essai avec sélecteurs génériques...");
+                    $crawler->filter('table tr, .resultat, div[class*="tirage"]')->each(function ($node) use (&$allNumbers) {
+                        preg_match_all('/\d+/', $node->text(), $matches);
+                        if (!empty($matches[0]) && count($matches[0]) >= TirageStrategies::TIRAGE_SIZE) {
+                            $allNumbers[] = array_map('intval', $matches[0]);
+                        }
+                    });
+                }
+                
+                error_log("Nombre de tirages trouvés: " . count($allNumbers));
+                
+                // Si nous avons des données de reducmiz, prendre le premier tirage (le plus récent)
+                if (!empty($allNumbers) && is_array($allNumbers[0]) && count($allNumbers[0]) >= TirageStrategies::TIRAGE_SIZE) {
+                    // Prendre les premiers numéros du premier groupe comme tirage le plus récent
+                    $recentDraw = array_slice($allNumbers[0], 0, TirageStrategies::TIRAGE_SIZE);
+                    error_log("Récupération réussie depuis reducmiz.com: " . count($recentDraw) . " numéros pour le tirage récent");
                 } else {
-                    error_log("Récupération réussie : " . count($allNumbers) . " numéros officiels trouvés");
+                    // Si reducmiz échoue, utiliser tirage-gagnant.com comme source de secours
+                    error_log("Aucun tirage récent trouvé sur reducmiz.com, essai de la source de secours");
+                    
+                    $backupSource = 'https://tirage-gagnant.com/amigo/';
+                    error_log("Tentative de récupération depuis $backupSource...");
+                    $crawler = $this->client->request('GET', $backupSource);
+                    
+                    // Récupérer les numéros avec le sélecteur principal de tirage-gagnant.com
+                    $recentDraw = [];
+                    $crawler->filter('.num, .chance')->each(function ($node) use (&$recentDraw) {
+                        $text = $node->text();
+                        if (is_numeric($text) && (int)$text >= 1 && (int)$text <= 28) {
+                            $recentDraw[] = (int)$text;
+                        }
+                    });
+                    
+                    // Vérifier que nous avons suffisamment de numéros
+                    if (count($recentDraw) < TirageStrategies::TIRAGE_SIZE) {
+                        // Essayer un autre sélecteur
+                        $tempNumbers = [];
+                        $crawler->filter('span[class*="num"]')->each(function ($node) use (&$tempNumbers) {
+                            $text = $node->text();
+                            if (is_numeric($text) && (int)$text >= 1 && (int)$text <= 28) {
+                                $tempNumbers[] = (int)$text;
+                            }
+                        });
+                        
+                        // Si le second sélecteur trouve des numéros, les utiliser
+                        if (count($tempNumbers) >= TirageStrategies::TIRAGE_SIZE) {
+                            $recentDraw = array_slice($tempNumbers, 0, TirageStrategies::TIRAGE_SIZE);
+                            error_log("Récupération réussie depuis tirage-gagnant.com avec le sélecteur secondaire: " . count($recentDraw) . " numéros");
+                        } else {
+                            // Si nous n'avons toujours pas assez de numéros, c'est une erreur critique
+                            error_log("ERREUR : Impossible de récupérer suffisamment de numéros de tirage officiels");
+                            throw new Exception("Impossible de récupérer les numéros officiels du tirage. Veuillez vérifier la connexion aux sites sources.");
+                        }
+                    } else {
+                        error_log("Récupération réussie depuis tirage-gagnant.com : " . count($recentDraw) . " numéros officiels trouvés");
+                    }
                 }
             } catch (\Exception $e) {
                 // En cas d'erreur, lancer une exception
@@ -90,13 +151,13 @@ class TirageDataFetcher {
             }
             
             // S'assurer d'avoir suffisamment de numéros
-            if (count($allNumbers) < TirageStrategies::TIRAGE_SIZE) {
+            if (!isset($recentDraw) || count($recentDraw) < TirageStrategies::TIRAGE_SIZE) {
                 throw new Exception("Données incomplètes : nombre insuffisant de numéros dans le tirage récent.");
             }
             
             // Les 7 premiers sont bleus, les 5 suivants sont jaunes
-            $blueNumbers = array_slice($allNumbers, 0, TirageStrategies::BLUE_COUNT);
-            $yellowNumbers = array_slice($allNumbers, TirageStrategies::BLUE_COUNT, TirageStrategies::YELLOW_COUNT);
+            $blueNumbers = array_slice($recentDraw, 0, TirageStrategies::BLUE_COUNT);
+            $yellowNumbers = array_slice($recentDraw, TirageStrategies::BLUE_COUNT, TirageStrategies::YELLOW_COUNT);
             
             // Format structuré pour meilleure compatibilité
             $numSortis = [
@@ -115,13 +176,20 @@ class TirageDataFetcher {
             $grille = $this->calculateFrequency($numSortisForFreq);
             $grilleB = $this->calculateFrequency($numSortisBForFreq);
             
+            // Afficher dans la console les données du tirage récent pour le débogage
+            error_log("===== DONNÉES DU TIRAGE RÉCENT =====");
+            error_log("Numéros bleus: " . implode(", ", $blueNumbers));
+            error_log("Numéros jaunes: " . implode(", ", $yellowNumbers));
+            error_log("Tous les numéros: " . implode(", ", $numSortisB));
+            error_log("=============================================");
+            
             $data = [
                 'numSortis' => $numSortis,
                 'numSortisB' => $numSortisB,
                 'grille' => $grille,
                 'grilleB' => $grilleB,
                 'fetchTime' => time(),
-                'dataSource' => 'tirage-gagnant.com',
+                'dataSource' => 'reducmiz.com',
                 'lastUpdated' => date('d/m/Y H:i:s', time()),
                 'isAuthentic' => true
             ];
@@ -174,14 +242,51 @@ class TirageDataFetcher {
             try {
                 $crawler = $this->client->request('GET', $source);
                 
-                // Récupérer les données avec le sélecteur spécifique à reducmiz.com
+                // Récupérer les tables de résultats qui contiennent les tirages
                 $allNumbers = [];
-                $crawler->filter('.bs-docs-section font')->each(function ($node) use (&$allNumbers) {
-                    preg_match_all('/\d+/', $node->text(), $matches);
-                    if (!empty($matches[0])) {
-                        $allNumbers[] = $matches[0];
+                error_log("Recherche des tables de résultats...");
+                
+                // Sélectionner toutes les tables de la page
+                $crawler->filter('table.table')->each(function ($table) use (&$allNumbers) {
+                    $blueNumbers = [];
+                    $yellowNumbers = [];
+                    
+                    // Rechercher la ligne des numéros bleus (avec bgcolor="#00008B")
+                    $table->filter('tr td[bgcolor="#00008B"]')->each(function ($blueCell) use (&$blueNumbers) {
+                        preg_match_all('/\d+/', $blueCell->text(), $matches);
+                        if (!empty($matches[0])) {
+                            $blueNumbers = array_map('intval', $matches[0]);
+                            error_log("Numéros bleus trouvés: " . implode(", ", $blueNumbers));
+                        }
+                    });
+                    
+                    // Rechercher la ligne des numéros jaunes (avec bgcolor="#008B00")
+                    $table->filter('tr td[bgcolor="#008B00"]')->each(function ($yellowCell) use (&$yellowNumbers) {
+                        preg_match_all('/\d+/', $yellowCell->text(), $matches);
+                        if (!empty($matches[0])) {
+                            $yellowNumbers = array_map('intval', $matches[0]);
+                            error_log("Numéros jaunes trouvés: " . implode(", ", $yellowNumbers));
+                        }
+                    });
+                    
+                    // Si on a trouvé à la fois des numéros bleus et jaunes, c'est un tirage valide
+                    if (!empty($blueNumbers) && !empty($yellowNumbers)) {
+                        $allNumbers[] = array_merge($blueNumbers, $yellowNumbers);
                     }
                 });
+                
+                // Si aucune table n'est trouvée, essayer une approche plus générique
+                if (empty($allNumbers)) {
+                    error_log("Aucune table trouvée, essai avec sélecteurs génériques...");
+                    $crawler->filter('table tr, .resultat, div[class*="tirage"]')->each(function ($node) use (&$allNumbers) {
+                        preg_match_all('/\d+/', $node->text(), $matches);
+                        if (!empty($matches[0]) && count($matches[0]) >= TirageStrategies::TIRAGE_SIZE) {
+                            $allNumbers[] = array_map('intval', $matches[0]);
+                        }
+                    });
+                }
+                
+                error_log("Nombre de tirages trouvés: " . count($allNumbers));
                 
                 // Vérifier si nous avons récupéré des données
                 if (empty($allNumbers)) {
@@ -228,53 +333,42 @@ class TirageDataFetcher {
                 throw new Exception("Impossible de récupérer les données historiques. Veuillez vérifier votre connexion internet.");
             }
             
-            // Aplatir le tableau et convertir en nombres avec gestion d'erreurs
-            $allNumsFlat = [];
-            if (is_array($allNumbers)) {
-                foreach ($allNumbers as $group) {
-                    if (is_array($group)) {
-                        foreach ($group as $number) {
-                            if (is_numeric($number)) {
-                                $num = (int)trim($number);
-                                if ($num >= 1 && $num <= 28) {
-                                    $allNumsFlat[] = $num;
-                                }
-                            }
-                        }
-                    }
+            // Nous allons traiter les données différemment pour assurer la cohérence
+            $numbers = [];
+            
+            // Vérifier que les données sont disponibles
+            if (empty($allNumbers) || !is_array($allNumbers)) {
+                throw new Exception("Données historiques insuffisantes pour une analyse fiable. Impossible d'accéder aux données réelles.");
+            }
+            
+            // Pour assurer la cohérence avec getRecentTirages(), traiter chaque groupe séparément
+            foreach ($allNumbers as $group) {
+                if (is_array($group) && count($group) >= TirageStrategies::TIRAGE_SIZE) {
+                    // Extraire TIRAGE_SIZE nombres de chaque groupe (12 nombres)
+                    $tirage = array_slice($group, 0, TirageStrategies::TIRAGE_SIZE);
+                    
+                    // Les 7 premiers sont bleus, les 5 suivants sont jaunes
+                    $blue = array_slice($tirage, 0, TirageStrategies::BLUE_COUNT);
+                    $yellow = array_slice($tirage, TirageStrategies::BLUE_COUNT, TirageStrategies::YELLOW_COUNT);
+                    
+                    $numbers[] = [
+                        'blue' => $blue,
+                        'yellow' => $yellow,
+                        'all' => $tirage,
+                        'date' => date('Y-m-d') // Utiliser directement la date au format Y-m-d
+                    ];
                 }
             }
             
             // Vérifier si nous avons assez de données
-            if (count($allNumsFlat) < TirageStrategies::TIRAGE_SIZE) {
+            if (count($numbers) < 1) {
                 throw new Exception("Données historiques insuffisantes pour une analyse fiable. Impossible d'accéder aux données réelles.");
             }
             
-            // Limiter le nombre de tirages si demandé
-            if ($limit > 0 && count($allNumsFlat) > ($limit * TirageStrategies::TIRAGE_SIZE)) {
-                $allNumsFlat = array_slice($allNumsFlat, 0, $limit * TirageStrategies::TIRAGE_SIZE);
-            }
-            
-            // Structurer les données en tirages de TIRAGE_SIZE numéros (7 bleus + 5 jaunes)
-            $numbers = [];
-            $chunks = array_chunk($allNumsFlat, TirageStrategies::TIRAGE_SIZE);
-            
-            foreach ($chunks as $chunk) {
-                // Vérifier que le chunk a la bonne taille
-                if (count($chunk) < TirageStrategies::TIRAGE_SIZE) {
-                    continue; // Ignorer ce tirage s'il est incomplet
-                }
-                
-                $blue = array_slice($chunk, 0, TirageStrategies::BLUE_COUNT);
-                $yellow = array_slice($chunk, TirageStrategies::BLUE_COUNT, TirageStrategies::YELLOW_COUNT);
-                
-                // Pour les tests, on considère que tous les tirages sont d'aujourd'hui
-                $numbers[] = [
-                    'blue' => $blue,
-                    'yellow' => $yellow,
-                    'all' => $chunk,
-                    'date' => date('Y-m-d') // Utiliser directement la date au format Y-m-d
-                ];
+            // Limiter le nombre de tirages historiques si demandé
+            if ($limit > 0 && count($numbers) > $limit) {
+                // Prendre les premiers tirages du tableau (les plus récents) plutôt que les derniers
+                $numbers = array_slice($numbers, 0, $limit);
             }
             
             // Calculer les fréquences
@@ -284,6 +378,16 @@ class TirageDataFetcher {
             $dates = [];
             foreach ($numbers as $index => $tirage) {
                 $dates[$index] = $tirage['date'];
+            }
+            
+            // Afficher dans la console les données du premier tirage pour le débogage
+            if (count($numbers) > 0) {
+                $firstDraw = $numbers[0];
+                error_log("===== DONNÉES DU PREMIER TIRAGE HISTORIQUE =====");
+                error_log("Numéros bleus: " . implode(", ", $firstDraw['blue']));
+                error_log("Numéros jaunes: " . implode(", ", $firstDraw['yellow']));
+                error_log("Tous les numéros: " . implode(", ", $firstDraw['all']));
+                error_log("=============================================");
             }
             
             $data = [
