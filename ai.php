@@ -75,8 +75,23 @@ include('assets/header.php');
                                 $yellowNumbers = isset($recentData['numSortis']['yellow']) ? $recentData['numSortis']['yellow'] : [];
                             }
                             
+                            // S'assurer qu'il n'y a pas de doublons dans la stratégie
+                            $uniqueNumbers = array_unique($strategy['numbers']);
+                            
+                            // Compléter à 7 si nécessaire
+                            if (count($uniqueNumbers) < 7) {
+                                $i = 1;
+                                while (count($uniqueNumbers) < 7 && $i <= 28) {
+                                    if (!in_array($i, $uniqueNumbers)) {
+                                        $uniqueNumbers[] = $i;
+                                    }
+                                    $i++;
+                                }
+                                sort($uniqueNumbers);
+                            }
+                            
                             // Afficher les numéros avec la couleur appropriée
-                            foreach ($strategy['numbers'] as $number):
+                            foreach ($uniqueNumbers as $number):
                                 $inBlue = in_array($number, $blueNumbers);
                                 $inYellow = in_array($number, $yellowNumbers);
                                 $bgClass = $inBlue ? "bg-primary" : ($inYellow ? "bg-success" : "bg-secondary");
@@ -96,6 +111,12 @@ include('assets/header.php');
         <small>
             <i class="fas fa-info-circle me-1"></i>
             EV = Espérance de gain (Expected Value) - ROI = Retour sur investissement (Return on Investment)
+            <br>
+            <span class="badge bg-primary me-1">1</span> = Numéro bleu dans le tirage actuel
+            <span class="badge bg-success me-1">2</span> = Numéro jaune dans le tirage actuel
+            <span class="badge bg-secondary me-1">3</span> = Numéro non présent dans le tirage actuel
+            <br>
+            <i class="fas fa-database me-1"></i> Basé sur <?php echo TirageDataset::getStats()['count']; ?> tirages historiques
         </small>
     </div>
 </div>
