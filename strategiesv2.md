@@ -11,9 +11,9 @@
 ## 1. Contexte général
 - **Fichiers tirages** : `tirages/YYYY-MM-DD_<index>_historical.json` (un JSON par tirage, 7 bleus + 5 jaunes).
 - **Structure projet existant** :
-    - `index.php` : stratégies historiques.
-    - `daily.php` : stratégies journalières.
-    - Classes dans `src/class/` : `TirageDataFetcher`, `TirageStrategies`, `TirageDailyStrategies`, `TirageVerifier`.
+   - `index.php` : stratégies historiques.
+   - `daily.php` : stratégies journalières.
+   - Classes dans `src/class/` : `TirageDataFetcher`, `TirageStrategies`, `TirageDailyStrategies`, `TirageVerifier`.
 - **Objectif** : ajouter un onglet *« Stratégies IA – toutes les données »* qui affiche **cinq stratégies IA** calculées en temps réel sur l’historique complet.
 
 ---
@@ -52,30 +52,30 @@ Les valeurs ci‑dessous devront être définies comme constante **GAIN_TABLE** 
 
 ### A1 : `BayesianEVStrategy` — **Modèle bêta‑binomial / EV maximale**
 1. **Principe** : pour chaque nombre _n_ (1‑28) on maintient deux compteurs `(alpha_n, beta_n)`.
-    - `alpha_n` = fois où _n_ est sorti.
-    - `beta_n` = fois où _n_ n’est pas sorti.
+   - `alpha_n` = fois où _n_ est sorti.
+   - `beta_n` = fois où _n_ n’est pas sorti.
 2. **Mise à jour** : après chaque nouveau tirage, les compteurs sont incrémentés immédiatement ; pas de facteur d’oubli (puisqu’il n’y a pas de cache, les valeurs sont recalculées à la volée en balayant l’historique complet).
 3. **Probabilité postérieure** : `p_n = alpha_n / (alpha_n + beta_n)`.
 4. **Sélection** :
-    1. Génère toutes les combinaisons 4🟦‑3🟨 candidates (approche gloutonne : on trie bleus et jaunes par `p_n`).
-    2. Calcule l’**espérance de gain (EV)** d’une combinaison via `GAIN_TABLE`.
-    3. Renvoie la combinaison EV max.
+   1. Génère toutes les combinaisons 4🟦‑3🟨 candidates (approche gloutonne : on trie bleus et jaunes par `p_n`).
+   2. Calcule l’**espérance de gain (EV)** d’une combinaison via `GAIN_TABLE`.
+   3. Renvoie la combinaison EV max.
 
 ### A2 : `MarkovROIStrategy` — **Chaîne Markov / ROI maximale**
 1. **Transition** : matrice 28×28 `T[i][j]` = probabilité qu’un numéro _j_ apparaisse au tirage *t+1* sachant que _i_ est apparu au tirage *t*.
-    - Construite en parcourant tout l’historique ; +1 Laplace pour éviter les zéros.
+   - Construite en parcourant tout l’historique ; +1 Laplace pour éviter les zéros.
 2. **Score proba** : part du dernier tirage et calcule `score_j = Σ_{i∈lastDraw} T[i][j]`.
 3. **ROI** : pour chaque numéro, on approxime `roi_j = (score_j * gainEspéré_j)/8`.
 4. **Sélection** :
-    - Trie séparément bleus et jaunes par ROI.
-    - Choisit 4🟦 + 3🟨 ROI max et renvoie la combinaison.
+   - Trie séparément bleus et jaunes par ROI.
+   - Choisit 4🟦 + 3🟨 ROI max et renvoie la combinaison.
 
 ### A3 : `MLPredictStrategy` — **Régression logistique (Rubix ML)**
 1. **Features par numéro** :
-    - `lag1` : apparu au dernier tirage ? (0/1)
-    - `freq50`, `freq250` : fréquence sur les 50 / 250 derniers tirages.
-    - `gapLast` : nb de tirages depuis la dernière apparition.
-    - `ratioBlue` : proportion d’apparitions en bleu.
+   - `lag1` : apparu au dernier tirage ? (0/1)
+   - `freq50`, `freq250` : fréquence sur les 50 / 250 derniers tirages.
+   - `gapLast` : nb de tirages depuis la dernière apparition.
+   - `ratioBlue` : proportion d’apparitions en bleu.
 2. **Entraînement** : modèle `LogisticRegression` OneVsRest (Rubix) appris à la volée sur l’historique complet.
 3. **Prédiction** : proba `p_n` pour chaque numéro.
 4. **EV** : `ev_n = p_n * gainEspéré_n`.
@@ -85,18 +85,18 @@ Les valeurs ci‑dessous devront être définies comme constante **GAIN_TABLE** 
 1. **Arms** : A1, A2, A3 + stratégie `Legacy4B3J` existante.
 2. **Récompense** : gain réalisé (0 s’il n’y a aucun match) / 8.
 3. **Choix** :
-    - 10 % du temps → exploration (arm aléatoire).
-    - 90 % → arm au meilleur gain moyen.
+   - 10 % du temps → exploration (arm aléatoire).
+   - 90 % → arm au meilleur gain moyen.
 4. **Sortie** : renvoie la combinaison choisie par l’arm sélectionné.
 
 ### A5 : `ClusterEVStrategy` — **Communautés de numéros / EV cluster**
 1. **Corrélation** : matrice de co‑occurrence entre numéros sur tout l’historique.
 2. **Communautés** : algorithme de Louvain (simplifié) pour détecter les clusters denses.
 3. **Scoring cluster** :
-    - Pour chaque cluster, calcule la proba qu’au moins 4 de ses numéros sortent ensemble.
-    - Multiplie par le gain moyen associé selon `GAIN_TABLE`.
+   - Pour chaque cluster, calcule la proba qu’au moins 4 de ses numéros sortent ensemble.
+   - Multiplie par le gain moyen associé selon `GAIN_TABLE`.
 4. **Sélection** :
-    - Prend le cluster EV max puis choisit 4🟦 + 3🟨 à l’intérieur, triés par fréquence.
+   - Prend le cluster EV max puis choisit 4🟦 + 3🟨 à l’intérieur, triés par fréquence.
 
 ---
 
@@ -106,12 +106,54 @@ Identiques à la section précédente **mais sans fichier PayoutTable** : chaq
 ---
 
 ## 5. Intégration UI
-- **ai.php** : lit `AIStrategyManager::generateAll()` et affiche les 5 stratégies (numéros, EV, ROI, stratégie utilisée).
+- **ai.php** : utilise `AIStrategyManager::generateAll()` pour obtenir, pour chaque stratégie :
+   - `label` : nom lisible (ex. « Bayesian EV »)
+   - `numbers` : **combinaison recommandée** (tirage suggéré) exactement comme affiché dans `index.php` (ordre officiel, bleus puis jaunes)
+   - `ev`, `roi`, `strategyId`, etc.
+- Affiche un tableau responsive avec :
+   1. Nom de la stratégie.
+   2. **Tirage suggéré** (7 numéros présentés dans des `<span>` bleus/jaunes, même style que `index.php`).
+   3. EV (€, arrondi 2 décimales).
+   4. ROI (≥ 0, arrondi 3 déc.).
 - **templates/header.php** : ajoute *« Stratégies IA – toutes les données »* (4ᵉ position).
 
 ---
 
 ## 6. Prompt pour Claude (complet)
+
+```text
+Rôle : Claude, expert PHP 8.3 (PSR‑12) & Rubix ML.
+
+Contexte : Projet Amélie (pas de cache, pas de tests, pas d’API externe).
+
+Mission :
+1. Créer / mettre à jour dans src/class/ :
+   • TirageDataset.php (parse JSON sans cache)
+   • strategies/BayesianEVStrategy.php      # A1 (GAIN_TABLE en constante)
+   • strategies/MarkovROIStrategy.php       # A2 (GAIN_TABLE)
+   • strategies/MLPredictStrategy.php       # A3 (GAIN_TABLE)
+   • strategies/ClusterEVStrategy.php       # A5 (GAIN_TABLE)
+   • strategies/BanditSelectorStrategy.php  # A4
+   • strategies/AIStrategyManager.php       # expose generateAll(): array<strategyInfo>, bestPick(): array
+     - `strategyInfo` contient : id, label, numbers (7 ints), ev, roi
+2. Modifier :
+   • src/class/TirageStrategies.php : ajouter case "IA v2" → AIStrategyManager::bestPick()
+   • templates/header.php : ajouter lien vers ai.php (4ᵉ position)
+3. Créer **ai.php** :
+   - Appelle AIStrategyManager::generateAll()
+   - Affiche un tableau responsive par stratégie avec : Nom, **Tirage suggéré** (même rendu que index.php), EV, ROI.
+4. Mettre à jour autoload PSR‑4 si nécessaire et lancer `composer dump-autoload`.
+5. Aucun test, aucun cache, pas d’API externe.
+6. Ne retourner que le code PHP.
+```
+
+---
+
+### 7. TL;DR
+- `ai.php` présente pour chaque stratégie la **combinaison recommandée** (tirage suggéré), comme dans `index.php`, plus EV et ROI.
+- 5 stratégies IA sans cache/test.
+- Prompt final prêt pour Claude.
+  Prompt pour Claude (complet)
 
 ```text
 Rôle : Claude, expert PHP 8.3 (PSR‑12) & Rubix ML.
@@ -132,6 +174,8 @@ Mission :
    • templates/header.php : lien vers ai.php (4ᵉ position)
 3. Créer **ai.php** : affiche tableau responsive des 5 stratégies IA (numéros, EV, ROI, label).
 4. Mettre à jour autoload PSR‑4 si nécessaire et exécuter `composer dump-autoload`.
+5. Aucun test, aucun cache. Les gains sont des constantes dans chaque classe.
+6. Retourne uniquement le code PHP (aucun texte explicatif).
 ```
 
 ---

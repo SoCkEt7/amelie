@@ -100,6 +100,10 @@ if (!isset($_SESSION['connected'])) { ?>
         $date = date('Y-m-d');
         $hour = date('H');
         $filename = "/home/antonin/app/otherProjects/server/amelie/tirages/{$date}_{$hour}_{$dataType}.json";
+        $dir = dirname($filename);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
         file_put_contents($filename, json_encode($tiragesData, JSON_PRETTY_PRINT));
     }
     

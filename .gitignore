@@ -1,0 +1,78 @@
+# Composer dependencies
+/vendor/
+composer.phar
+composer.lock
+
+# Environment files
+.env
+.env.backup
+.env.local
+.env.*.local
+
+# PHP CS Fixer
+.php_cs.cache
+.php-cs-fixer.cache
+
+# PHPUnit
+.phpunit.result.cache
+phpunit.xml
+
+# Log files
+*.log
+logs/
+/log/*
+!/log/.gitkeep
+
+# Cache files and directories
+*.cache
+.phpintel/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Framework specific
+## Laravel
+/node_modules/
+/public/hot
+/public/storage
+/storage/*.key
+.env.example
+npm-debug.log
+yarn-error.log
+/public/build
+/public/js
+/public/css
+/bootstrap/cache/
+
+## Symfony
+/var/
+/bin/*
+!/bin/console
+!/bin/symfony_requirements
+/public/bundles/
+
+## WordPress
+wp-content/uploads/
+wp-content/upgrade/
+wp-content/plugins/*
+!wp-content/plugins/my-plugin/
+wp-content/cache/
+wp-config.php
+
+## Drupal
+/sites/*/files
+/sites/*/settings.php
+/sites/*/settings.local.php
+files/
+private/
+tmp/
+
+# Backup files
+*.bak
+*.swp
+*~
+.*.swp
+
+# Local configuration file
+php.ini
