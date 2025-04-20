@@ -55,18 +55,19 @@ if (!isset($_SESSION['connected'])) { ?>
     $dataFetcher = new TirageDataFetcher();
     $recentData = $dataFetcher->getRecentTirages();
     $historicalData = $dataFetcher->getHistoricalTirages(1000); // Limiter à 1000 tirages
+    $historicalCount = isset($historicalData['numbers']) ? count($historicalData['numbers']) : 0;
+    $recentCount = isset($recentData['numbers']) ? count($recentData['numbers']) : 0;
     
     // Générer les stratégies basées sur les données récupérées
     $strategiesCalculator = new TirageStrategies($historicalData, $recentData);
     $strategies = $strategiesCalculator->getStrategies();
-    echo "<pre>STRATEGIES : "; print_r($strategies); echo "</pre>";
 
     // Préparer le top 3 safe (accueil + jour)
     $allStrategies = $strategies;
     if (isset($dailyStrategies)) {
         $allStrategies = array_merge($allStrategies, $dailyStrategies);
     }
-    echo "<pre>ALL STRATEGIES : "; print_r($allStrategies); echo "</pre>";
+
     // Ajout des valeurs par défaut si manquantes
     foreach ($allStrategies as &$strat) {
         if (!isset($strat['roi'])) $strat['roi'] = 0;
@@ -80,12 +81,45 @@ if (!isset($_SESSION['connected'])) { ?>
         return $b['roi'] <=> $a['roi'];
     });
     $top3Safe = array_slice($allStrategies, 0, 3);
-    echo "<pre>TOP3 SAFE : "; print_r($top3Safe); echo "</pre>";
 
     // Inclure l'en-tête
     include 'assets/header.php';
-
     ?>
+    
+    <link rel="stylesheet" href="assets/data-badge.css">
+    
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="index.php">
+                <i class="fas fa-dice fa-lg me-2 text-info"></i> Amélie
+            </a>
+            <span class="data-badge-info ms-2">
+                <i class="fas fa-database"></i>
+                <span title="Nombre de tirages historiques analysés"><?php echo $historicalCount; ?> historiques</span>
+                <span style="font-size:0.85em;color:#888;margin:0 0.5em;">|</span>
+                <span title="Tirages récents"><?php echo $recentCount; ?> récents</span>
+            </span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#strategyTabs"><i class="fas fa-lightbulb me-1"></i>Stratégies</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#stats"><i class="fas fa-chart-bar me-1"></i>Statistiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#gainsTabs"><i class="fas fa-coins me-1"></i>Gains</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="?logout=1"><i class="fas fa-sign-out-alt me-1"></i>Déconnexion</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
     
     <div class="container mt-4">
         <h1 class="text-center mb-4">Amélie - Analyse Amigo</h1>

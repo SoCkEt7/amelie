@@ -1,0 +1,22 @@
+.data-badge-info {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35em 0.8em;
+  font-size: 1.05em;
+  font-weight: 600;
+  border-radius: 1.5em;
+  background: linear-gradient(90deg, #0dcaf0 60%, #fff 100%);
+  color: #055160;
+  box-shadow: 0 1px 8px rgba(13,202,240,0.10);
+  border: 1.5px solid #0dcaf0;
+  margin-left: 1em;
+  letter-spacing: 0.02em;
+  transition: background 0.2s;
+}
+.data-badge-info i {
+  margin-right: 0.5em;
+  color: #0dcaf0;
+}
+.data-badge-info:hover {
+  background: linear-gradient(90deg, #0dcaf0 80%, #fff 100%);
+}

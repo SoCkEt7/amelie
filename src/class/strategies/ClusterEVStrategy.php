@@ -354,6 +354,11 @@ class ClusterEVStrategy
                     $key_i !== null && $key_j !== null
                 ) {
                     $totalCoOccurrences += $this->coOccurrenceMatrix[$key_i][$key_j];
+                } else {
+                    // Sécurise contre les warnings
+                    // $this->coOccurrenceMatrix[$key_i][$key_j] absent
+                    // On ignore simplement cette paire
+                    continue;
                 }
                 $pairCount++;
             }
