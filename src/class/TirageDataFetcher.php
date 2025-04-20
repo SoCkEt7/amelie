@@ -4,7 +4,8 @@
  * Classe pour récupérer les données de tirages
  */
 class TirageDataFetcher {
-    private $client;
+    // Rendre le client public pour usage CLI direct
+    public $client;
     
     /**
      * Constructeur
@@ -647,5 +648,32 @@ class TirageDataFetcher {
         ];
         
         return $trends;
+    }
+    
+    /**
+     * Récupère les tirages Amigo depuis reducmiz.com à partir d'une date donnée (format YYYY-MM-DD)
+     * @param string $dateMin Date minimale incluse (ex: '2025-04-16')
+     * @return array Liste des tirages (date + numbers)
+     */
+    public function getTiragesReducmizDepuis($dateMin = '2025-04-16') {
+        $url = "https://www.reducmiz.com/resultat_fdj.php?jeu=amigo&nb=5000";
+        $html = @file_get_contents($url);
+        if (!$html) return [];
+
+        $tirages = [];
+        // Regex pour trouver les dates et les numéros sur la page
+        preg_match_all('/(\\d{2}\\/\\d{2}\\/\\d{4})[^\\d]+((?:\\d{1,2} ?)+)/', $html, $matches, PREG_SET_ORDER);
+
+        foreach ($matches as $match) {
+            $date = DateTime::createFromFormat('d/m/Y', $match[1]);
+            if ($date && $date->format('Y-m-d') >= $dateMin) {
+                $nums = preg_split('/\\s+/', trim($match[2]));
+                $tirages[] = [
+                    'date' => $date->format('Y-m-d'),
+                    'numbers' => array_map('intval', $nums)
+                ];
+            }
+        }
+        return $tirages;
     }
 }

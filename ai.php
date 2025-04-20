@@ -46,6 +46,34 @@ include('assets/header.php');
             les 7 numéros à jouer.
         </p>
         
+        <?php
+        // Trouver la stratégie la plus "safe" (ROI positif max, sinon le moins négatif)
+        $safeStrategy = null;
+        foreach ($strategies as $strategy) {
+            if ($safeStrategy === null) {
+                $safeStrategy = $strategy;
+            } else {
+                // Priorité au ROI positif, puis EV
+                if (
+                    ($strategy['roi'] > 0 && $safeStrategy['roi'] <= 0) ||
+                    ($strategy['roi'] > 0 && $strategy['roi'] > $safeStrategy['roi']) ||
+                    ($strategy['roi'] <= 0 && $strategy['roi'] > $safeStrategy['roi'])
+                ) {
+                    $safeStrategy = $strategy;
+                }
+            }
+        }
+        ?>
+
+        <div class="alert alert-info">
+            <strong>Stratégie IA la plus « safe » :</strong>
+            <span class="fw-bold"><?php echo htmlspecialchars($safeStrategy['label']); ?></span>
+            — EV : <strong><?php echo number_format($safeStrategy['ev'], 2); ?> €</strong>
+            — ROI : <strong><?php echo number_format($safeStrategy['roi'], 3); ?></strong>
+            <br>
+            <span class="small text-muted">Une stratégie « safe » privilégie un rendement stable et limite le risque de perte.</span>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>

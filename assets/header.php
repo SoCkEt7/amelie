@@ -18,9 +18,7 @@ include('src/startup.php'); ?>
     <link rel="icon" href="./assets/images/favicon.png" type="image/x-icon">
 </head>
 <body data-bs-theme="dark">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
-            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyK/z0slaEqUKRy0R1m53" 
-            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php if (isset($cacheWarning)): ?>
 <div class="alert alert-warning m-0 border-0 rounded-0">
@@ -61,6 +59,9 @@ include('src/startup.php'); ?>
                     <a href="tirages.php" class="btn btn-sm btn-outline-success me-1">
                         <i class="fas fa-history me-1"></i>Historique
                     </a>
+                    <button class="btn btn-sm btn-outline-warning me-1" data-bs-toggle="modal" data-bs-target="#safeModal" title="Top 3 Safe">
+                        <i class="fas fa-shield-alt"></i>
+                    </button>
                 </div>
                 <div class="d-md-none">
                     <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-controls="mobileMenu">
@@ -99,7 +100,104 @@ include('src/startup.php'); ?>
             <?php endif; ?>
         </div>
     </div>
+    <!-- Debug temporaire : afficher les stratégies fusionnées -->
+    <?php
+    if (isset($allStrategies)) {
+        echo "<pre class='text-bg-dark small p-2'>";
+        echo "<b>allStrategies :</b>\n";
+        print_r($allStrategies);
+        echo "</pre>";
+    }
+    if (isset($top3Safe)) {
+        echo "<pre class='text-bg-dark small p-2'>";
+        echo "<b>top3Safe :</b>\n";
+        print_r($top3Safe);
+        echo "</pre>";
+    }
+    ?>
 </header>
+
+<!-- Modale Safe Global -->
+<div class="modal fade" id="safeModal" tabindex="-1" aria-labelledby="safeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title w-100 text-center" id="safeModalLabel">
+          <i class="fas fa-shield-alt me-2 text-success"></i>Top 3 stratégies « safe » (Accueil + Jour)
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+      </div>
+      <div class="modal-body">
+        <?php if (isset($top3Safe) && !empty($top3Safe)): ?>
+          <div class="row justify-content-center">
+            <?php foreach ($top3Safe as $strategy): ?>
+              <div class="col-md-4 mb-3">
+                <div class="card h-100 shadow border-<?php echo $strategy['class'] ?? 'primary'; ?>">
+                  <div class="card-header bg-<?php echo $strategy['class'] ?? 'primary'; ?> text-white text-center">
+                    <strong><?php echo htmlspecialchars($strategy['name'] ?? $strategy['label']); ?></strong>
+                    <span class="ms-2" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo htmlspecialchars($strategy['description'] ?? $strategy['method'] ?? ''); ?>">
+                      <i class="fas fa-info-circle"></i>
+                    </span>
+                  </div>
+                  <div class="card-body text-center">
+                    <div class="mb-2">
+                      <span class="badge bg-dark me-1">Source : <b><?php echo htmlspecialchars($strategy['method'] ?? ''); ?></b></span>
+                    </div>
+                    <div class="mb-2">
+                      <span class="badge bg-success me-1">EV : <b><?php echo (isset($strategy['ev']) && $strategy['ev'] > 0) ? number_format($strategy['ev'], 2) : 'Non calculé'; ?> €</b></span>
+                      <span class="badge bg-primary">ROI : <b><?php echo (isset($strategy['roi']) && $strategy['roi'] > 0) ? number_format($strategy['roi'], 3) : 'Non calculé'; ?></b></span>
+                    </div>
+                    <div class="mb-2">
+                      <?php
+                      // Séparation bleu/jaune : par défaut 7 bleus, 0/5 jaunes
+                      $bleus = array_slice($strategy['numbers'], 0, 7);
+                      $jaunes = array_slice($strategy['numbers'], 7);
+                      foreach ($bleus as $num) {
+                        echo '<span class="badge bg-primary me-1">'.$num.'</span>';
+                      }
+                      foreach ($jaunes as $num) {
+                        echo '<span class="badge bg-warning text-dark me-1">'.$num.'</span>';
+                      }
+                      ?>
+                    </div>
+                    <div class="mt-2">
+                      <span class="badge bg-light text-dark">Tirage : <b><?php echo isset($strategy['source']) ? htmlspecialchars($strategy['source']) : 'Historique'; ?></b></span>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                      <?php
+                        // Affichage masse de données analysées (si dispo)
+                        if (isset($strategy['tiragesAnalyzed'])) {
+                          echo '<span class="badge bg-info text-dark">'.htmlspecialchars($strategy['tiragesAnalyzed']).' tirages analysés</span>';
+                        } elseif (isset($strategy['tirages']) && is_array($strategy['tirages'])) {
+                          echo '<span class="badge bg-info text-dark">'.count($strategy['tirages']).' tirages analysés</span>';
+                        } elseif (isset($strategy['dataCount'])) {
+                          echo '<span class="badge bg-info text-dark">'.htmlspecialchars($strategy['dataCount']).' tirages analysés</span>';
+                        } else {
+                          echo '<span class="badge bg-info text-dark">Masse de données inconnue</span>';
+                        }
+                      ?>
+                    </div>
+                  </div>
+                  <div class="card-footer small text-muted text-center">
+                    <span data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo htmlspecialchars($strategy['description'] ?? $strategy['method'] ?? ''); ?>">
+                      <?php echo htmlspecialchars($strategy['description'] ?? $strategy['method'] ?? ''); ?>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <script>var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+          tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+          });</script>
+        <?php else: ?>
+          <div class="text-muted text-center">Aucune donnée disponible.</div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="content-wrapper">
 <main class="container p-2 p-md-3">

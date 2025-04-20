@@ -22,6 +22,28 @@ use Nesk\Rialto\Data\JsFunction;
 date_default_timezone_set('Europe/Paris');
 $iso = $argv[1] ?? date('Y-m-d');              // date ciblée (ISO 8601)
 
+// ---------------------------- MODE REDUCMIZ -------------------------------
+// Si l'URL reducmiz est fournie en argument, on utilise la méthode PHP native
+if (isset($argv[1]) && filter_var($argv[1], FILTER_VALIDATE_URL)) {
+    require_once __DIR__.'/src/class/TirageDataFetcher.php';
+    $fetcher = new TirageDataFetcher();
+    $tirages = $fetcher->getTiragesReducmizDepuis('2025-04-16');
+    // Format de sortie : numbers, frequency, dates (même structure que les historiques)
+    $out = ["numbers"=>[],"frequency"=>[],"dates"=>[]];
+    foreach ($tirages as $tirage) {
+        $blue = $tirage["numbers"];
+        $yellow = [];
+        $all = $blue;
+        $out["numbers"][] = ["blue"=>$blue, "yellow"=>$yellow, "all"=>$all, "date"=>$tirage["date"]];
+        foreach ($all as $n) $out["frequency"][strval($n)] = ($out["frequency"][strval($n)]??0)+1;
+        $out["dates"][] = $tirage["date"];
+    }
+    $jsonFile = __DIR__.'/tirages/'.date('Y-m-d').'_reducmiz_historical.json';
+    file_put_contents($jsonFile, json_encode($out, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+    echo "✔  Tirages reducmiz exportés dans $jsonFile\n";
+    exit(0);
+}
+
 // ---------------------------- Helper : format FR ----------------------------
 $months = ['janvier','février','mars','avril','mai','juin',
            'juillet','août','septembre','octobre','novembre','décembre'];

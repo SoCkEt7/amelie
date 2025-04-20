@@ -70,6 +70,25 @@ if (!isset($_SESSION['connected'])) { ?>
     // Générer les stratégies basées sur les données du jour
     $dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
     $dailyStrategies = $dailyStrategiesCalculator->getStrategies();
+
+    // Préparer le top 3 safe (accueil + jour)
+    $allStrategies = $dailyStrategies;
+    if (isset($strategies)) {
+        $allStrategies = array_merge($allStrategies, $strategies);
+    }
+    // Ajout des valeurs par défaut si manquantes
+    foreach ($allStrategies as &$strat) {
+        if (!isset($strat['roi'])) $strat['roi'] = 0;
+        if (!isset($strat['ev'])) $strat['ev'] = 0;
+    }
+    unset($strat);
+    usort($allStrategies, function($a, $b) {
+        if ($a['roi'] == $b['roi']) return $b['ev'] <=> $a['ev'];
+        if ($a['roi'] > 0 && $b['roi'] <= 0) return -1;
+        if ($a['roi'] <= 0 && $b['roi'] > 0) return 1;
+        return $b['roi'] <=> $a['roi'];
+    });
+    $top3Safe = array_slice($allStrategies, 0, 3);
     
     ?>
     

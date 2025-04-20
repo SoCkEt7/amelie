@@ -11,9 +11,6 @@ include 'src/startup.php';
 require_once 'src/class/TirageDataFetcher.php';
 require_once 'src/class/TirageStrategies.php';
 
-// Inclure l'en-tête
-include 'assets/header.php';
-
 // Gestion de la déconnexion
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -38,9 +35,7 @@ if (!isset($_SESSION['connected'])) { ?>
         <h1>Connexion</h1>
         <form action="" method="post" class="w-100" style="max-width: 400px;">
             <?php if (isset($login_error)): ?>
-            <div class="alert alert-danger">
-                <?php echo htmlspecialchars($login_error); ?>
-            </div>
+            <div class="alert alert-danger"><?php echo $login_error; ?></div>
             <?php endif; ?>
             <div class="mb-3">
                 <input class="form-control form-control-lg" type="password" name="password" placeholder="Mot de passe" required autofocus>
@@ -52,7 +47,6 @@ if (!isset($_SESSION['connected'])) { ?>
     </div>
 <?php } else {
     // Utilisateur connecté - Afficher l'application
-    
     // Activer le rapport d'erreurs pour le débogage
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
@@ -65,7 +59,32 @@ if (!isset($_SESSION['connected'])) { ?>
     // Générer les stratégies basées sur les données récupérées
     $strategiesCalculator = new TirageStrategies($historicalData, $recentData);
     $strategies = $strategiesCalculator->getStrategies();
-    
+    echo "<pre>STRATEGIES : "; print_r($strategies); echo "</pre>";
+
+    // Préparer le top 3 safe (accueil + jour)
+    $allStrategies = $strategies;
+    if (isset($dailyStrategies)) {
+        $allStrategies = array_merge($allStrategies, $dailyStrategies);
+    }
+    echo "<pre>ALL STRATEGIES : "; print_r($allStrategies); echo "</pre>";
+    // Ajout des valeurs par défaut si manquantes
+    foreach ($allStrategies as &$strat) {
+        if (!isset($strat['roi'])) $strat['roi'] = 0;
+        if (!isset($strat['ev'])) $strat['ev'] = 0;
+    }
+    unset($strat);
+    usort($allStrategies, function($a, $b) {
+        if ($a['roi'] == $b['roi']) return $b['ev'] <=> $a['ev'];
+        if ($a['roi'] > 0 && $b['roi'] <= 0) return -1;
+        if ($a['roi'] <= 0 && $b['roi'] > 0) return 1;
+        return $b['roi'] <=> $a['roi'];
+    });
+    $top3Safe = array_slice($allStrategies, 0, 3);
+    echo "<pre>TOP3 SAFE : "; print_r($top3Safe); echo "</pre>";
+
+    // Inclure l'en-tête
+    include 'assets/header.php';
+
     ?>
     
     <div class="container mt-4">

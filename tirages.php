@@ -9,6 +9,105 @@ include 'src/startup.php';
 require_once 'src/class/TirageDataFetcher.php';
 require_once 'src/class/TirageStrategies.php';
 
+// --- Mode CLI : bypass login et génère le JSON ---
+if (php_sapi_name() === 'cli') {
+    // Arguments : source ou URL, limit
+    $source = $argv[1] ?? 'all';
+    $limit = isset($argv[2]) ? intval($argv[2]) : 2000;
+    if ($limit <= 0) $limit = 2000;
+    if ($limit > 5000) $limit = 5000;
+
+    $dataFetcher = new TirageDataFetcher();
+    $start_time = microtime(true);
+    $tiragesData = [];
+    $dataType = '';
+
+    if (filter_var($source, FILTER_VALIDATE_URL)) {
+        // Mode URL : utiliser le même post-traitement que getHistoricalTirages
+        $url = $source;
+        $allNumbers = [];
+        if ($dataFetcher->client) {
+            $crawler = $dataFetcher->client->request('GET', $url);
+            $crawler->filter('table.table')->each(function ($table) use (&$allNumbers) {
+                $blueNumbers = [];
+                $yellowNumbers = [];
+                $table->filter('tr td[bgcolor="#00008B"]')->each(function ($blueCell) use (&$blueNumbers) {
+                    preg_match_all('/\d+/', $blueCell->text(), $matches);
+                    if (!empty($matches[0])) {
+                        $blueNumbers = array_map('intval', $matches[0]);
+                    }
+                });
+                $table->filter('tr td[bgcolor="#008B00"]')->each(function ($yellowCell) use (&$yellowNumbers) {
+                    preg_match_all('/\d+/', $yellowCell->text(), $matches);
+                    if (!empty($matches[0])) {
+                        $yellowNumbers = array_map('intval', $matches[0]);
+                    }
+                });
+                if (!empty($blueNumbers) && !empty($yellowNumbers)) {
+                    $allNumbers[] = array_merge($blueNumbers, $yellowNumbers);
+                }
+            });
+            if (empty($allNumbers)) {
+                $crawler->filter('table tr, .resultat, div[class*="tirage"]')->each(function ($node) use (&$allNumbers) {
+                    preg_match_all('/\d+/', $node->text(), $matches);
+                    if (!empty($matches[0]) && count($matches[0]) >= 12) {
+                        $allNumbers[] = array_map('intval', $matches[0]);
+                    }
+                });
+            }
+        }
+        // Post-traitement pour produire le même format que getHistoricalTirages
+        $numbers = [];
+        $frequency = [];
+        $dates = [];
+        foreach ($allNumbers as $tirage) {
+            $blue = array_slice($tirage, 0, 7);
+            $yellow = array_slice($tirage, 7, 5);
+            $all = array_merge($blue, $yellow);
+            $numbers[] = ["blue"=>$blue, "yellow"=>$yellow, "all"=>$all];
+            foreach ($all as $n) $frequency[strval($n)] = ($frequency[strval($n)]??0)+1;
+            $dates[] = null;
+        }
+        $tiragesData = ["numbers"=>$numbers, "frequency"=>$frequency, "dates"=>$dates];
+        $dataType = 'historical';
+    } elseif ($source === 'recent') {
+        $recentData = $dataFetcher->getRecentTirages();
+        if (isset($recentData['numSortis'])) {
+            $tiragesData = $recentData;
+            $dataType = 'recent';
+        }
+    } elseif ($source === 'extended') {
+        $historicalData = $dataFetcher->getExtendedHistoricalData();
+        if (isset($historicalData['numbers']) && !empty($historicalData['numbers'])) {
+            $tiragesData = $historicalData;
+            $dataType = 'extended';
+        }
+    } else {
+        $historicalData = $dataFetcher->getHistoricalTirages($limit);
+        if (isset($historicalData['numbers']) && !empty($historicalData['numbers'])) {
+            $tiragesData = $historicalData;
+            $dataType = 'historical';
+        }
+    }
+    $end_time = microtime(true);
+    $loading_time = round($end_time - $start_time, 2);
+    if (!empty($tiragesData)) {
+        $date = date('Y-m-d');
+        $hour = date('H');
+        $filename = "tirages/{$date}_{$hour}_{$dataType}.json";
+        $dir = dirname($filename);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+        file_put_contents($filename, json_encode($tiragesData, JSON_PRETTY_PRINT));
+        echo "✔ Fichier généré : $filename\n";
+        exit(0);
+    } else {
+        echo "Aucune donnée à sauvegarder.\n";
+        exit(1);
+    }
+}
+
 // Inclure l'en-tête
 include 'assets/header.php';
 
