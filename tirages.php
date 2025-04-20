@@ -99,7 +99,7 @@ if (!isset($_SESSION['connected'])) { ?>
     if (!empty($tiragesData)) {
         $date = date('Y-m-d');
         $hour = date('H');
-        $filename = "/home/antonin/app/otherProjects/server/amelie/tirages/{$date}_{$hour}_{$dataType}.json";
+        $filename = "tirages/{$date}_{$hour}_{$dataType}.json";
         $dir = dirname($filename);
         if (!is_dir($dir)) {
             mkdir($dir, 0777, true);
