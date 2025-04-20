@@ -3,5 +3,8 @@
         "nette/robot-loader": "^4.0",
         "sunra/php-simple-html-dom-parser": "^1.5",
         "fabpot/goutte": "^4.0"
+    },
+    "require-dev": {
+        "nesk/puphpeteer": "1.6.0"
     }
 }

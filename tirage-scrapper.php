@@ -30,7 +30,7 @@ $dateFr = sprintf('%s %s %s', (int)$d, $months[(int)$m-1], $y); // ex. 17 avril 
 
 // ---------------------------- Lance Chrome Headless -------------------------
 $puppeteer = new Puppeteer([
-    'read_timeout' => 0,        // pas de time‑out entre PHP & Chrome
+    'read_timeout' => 10,        // timeout augmenté à 10s entre PHP & Chrome
     'idle_timeout' => 60,
 ]);
 $browser = $puppeteer->launch([
