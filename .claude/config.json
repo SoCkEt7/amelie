@@ -1,0 +1,4 @@
+{
+  "git": { "strategy": "autocommit" },
+  "testing": { "command": "npm test" }
+}

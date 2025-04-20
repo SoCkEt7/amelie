@@ -345,7 +345,16 @@ class ClusterEVStrategy
         
         for ($i = 0; $i < count($cluster); $i++) {
             for ($j = $i + 1; $j < count($cluster); $j++) {
-                $totalCoOccurrences += $this->coOccurrenceMatrix[$cluster[$i]][$cluster[$j]];
+                $key_i = $cluster[$i];
+                $key_j = $cluster[$j];
+                if (
+                    isset($this->coOccurrenceMatrix[$key_i]) &&
+                    isset($this->coOccurrenceMatrix[$key_i][$key_j]) &&
+                    $key_i !== '' && $key_j !== '' &&
+                    $key_i !== null && $key_j !== null
+                ) {
+                    $totalCoOccurrences += $this->coOccurrenceMatrix[$key_i][$key_j];
+                }
                 $pairCount++;
             }
         }
