@@ -470,9 +470,6 @@ usort($top5Safe, function($a, $b) {
             </div>
         </div>
     </div>
-<?php 
-}
-
 // Inclure le pied de page
 include 'assets/footer.php';
 ?>

@@ -467,9 +467,6 @@ $dailyStrategies = $dailyStrategiesCalculator->getStrategies();
 
     </div>
 
-<?php 
-}
-
 // Inclure le pied de page
 include 'assets/footer.php';
 ?>
