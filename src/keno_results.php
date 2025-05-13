@@ -19,71 +19,102 @@ function fetch_keno_data() {
     return $html;
 }
 
-function extract_keno_numbers($html) {
-    // Extraction spécifique pour le format du site reducmiz.com
-    $pattern = '/<td bgcolor="#8B0000"[^>]*><b><font color="#FFFFFF">([^<]+)<\/font><\/b><\/td>/';
-    $matches = [];
-    preg_match_all($pattern, $html, $matches);
-    
-    $numbers = [];
-    if (!empty($matches[1])) {
-        foreach ($matches[1] as $tirage) {
-            // Nettoyer et extraire les numéros
-            $tirage = str_replace('&nbsp;', ' ', $tirage);
-            $nums = preg_split('/\s+/', trim($tirage));
-            foreach ($nums as $num) {
-                if (is_numeric($num) && $num >= 1 && $num <= 70) {
-                    $numbers[] = (int)$num;
-                }
+function extract_keno_draws($html) {
+    // Extraction des blocs de tirage
+    $draws = [];
+    $pattern = '/<td align="left">date du tirage<\/td><td align="left"><b>([^<]+)<\/b><\/td>.*?<td align="left">tirage<\/td><td bgcolor="#8B0000"[^>]*><b><font color="#FFFFFF">([^<]+)<\/font><\/b><\/td>/si';
+    preg_match_all($pattern, $html, $matches, PREG_SET_ORDER);
+
+    foreach ($matches as $m) {
+        $date_str = trim($m[1]);
+        $tirage_str = str_replace('&nbsp;', ' ', $m[2]);
+        $nums = preg_split('/\s+/', trim($tirage_str));
+        $numbers = [];
+        foreach ($nums as $num) {
+            if (is_numeric($num) && $num >= 1 && $num <= 70) {
+                $numbers[] = (int)$num;
+            }
+        }
+        // Conversion de la date (ex: 'lundi 12/05/2025 midi')
+        if (preg_match('/(\d{2}\/\d{2}\/\d{4})/', $date_str, $dmatch)) {
+            $date = DateTime::createFromFormat('d/m/Y', $dmatch[1]);
+            if ($date) {
+                // Ajout de l'info "midi" ou "soir" dans le champ
+                $moment = (strpos($date_str, 'midi') !== false) ? 'midi' : ((strpos($date_str, 'soir') !== false) ? 'soir' : '');
+                $draws[] = [
+                    'date' => $date->format('Y-m-d'),
+                    'moment' => $moment,
+                    'numbers' => $numbers
+                ];
             }
         }
     }
-    
-    // Si aucun numéro n'a été trouvé, générer des données de test
-    if (empty($numbers)) {
-        // Données de test pour démonstration
-        for ($i = 0; $i < 1000; $i++) {
-            $numbers[] = rand(1, 70);
-        }
-    }
-    
-    return $numbers;
+    return $draws;
 }
 
-function analyze_keno($numbers) {
-    $freq = array_fill(1, 70, 0); // Keno FDJ : numéros de 1 à 70
-    
-    // Compter la fréquence de chaque numéro
+function analyze_keno($draws) {
+    // Analyse globale
+    $all_numbers = [];
+    foreach ($draws as $draw) {
+        $all_numbers = array_merge($all_numbers, $draw['numbers']);
+    }
+    $global = compute_freq($all_numbers);
+    $global['total_draws'] = count($draws);
+
+    // Analyse par semaine
+    $by_week = [];
+    foreach ($draws as $draw) {
+        $week = date('o-W', strtotime($draw['date']));
+        if (!isset($by_week[$week])) $by_week[$week] = [];
+        $by_week[$week] = array_merge($by_week[$week], $draw['numbers']);
+    }
+    $week_stats = [];
+    foreach ($by_week as $week => $numbers) {
+        $week_stats[$week] = compute_freq($numbers);
+    }
+
+    // Analyse par mois
+    $by_month = [];
+    foreach ($draws as $draw) {
+        $month = date('Y-m', strtotime($draw['date']));
+        if (!isset($by_month[$month])) $by_month[$month] = [];
+        $by_month[$month] = array_merge($by_month[$month], $draw['numbers']);
+    }
+    $month_stats = [];
+    foreach ($by_month as $month => $numbers) {
+        $month_stats[$month] = compute_freq($numbers);
+    }
+
+    return [
+        'global' => $global,
+        'par_semaine' => $week_stats,
+        'par_mois' => $month_stats,
+        'date_analyse' => date('d/m/Y H:i:s')
+    ];
+}
+
+function compute_freq($numbers) {
+    $freq = array_fill(1, 70, 0);
     foreach ($numbers as $num) {
         if (isset($freq[$num])) {
             $freq[$num]++;
         }
     }
-    
-    // Trier pour obtenir les moins fréquents
     asort($freq);
     $least = array_slice($freq, 0, 9, true);
-    
-    // Trier pour obtenir les plus fréquents
     arsort($freq);
     $most = array_slice($freq, 0, 9, true);
-    
-    // Calculer le nombre total de tirages analysés
-    $total_tirages = count($numbers) / 20; // 20 numéros par tirage
-    
     return [
         'least' => array_keys($least),
         'most' => array_keys($most),
         'least_freq' => $least,
         'most_freq' => $most,
-        'total_numbers' => count($numbers),
-        'total_tirages' => round($total_tirages),
-        'date_analyse' => date('d/m/Y H:i:s')
+        'total_numbers' => count($numbers)
     ];
 }
 
 // Exécution
 $html = fetch_keno_data();
-$numbers = extract_keno_numbers($html);
-$result = analyze_keno($numbers);
+$draws = extract_keno_draws($html);
+$result = analyze_keno($draws);
 echo json_encode($result);

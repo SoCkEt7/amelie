@@ -241,16 +241,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Masquer le chargement
                 document.getElementById('keno-loading').style.display = 'none';
                 
-                // Afficher les tableaux
-                renderKenoTable(data.most, data.most_freq, 'keno-most-table', 'warning');
-                renderKenoTable(data.least, data.least_freq, 'keno-least-table', 'info');
-                
-                // Remplir les informations de la modal
-                if (data.total_tirages) {
-                    document.getElementById('keno-total-tirages').textContent = data.total_tirages;
+                // Afficher les tableaux globaux
+                renderKenoTable(data.global.most, data.global.most_freq, 'keno-most-table', 'warning');
+                renderKenoTable(data.global.least, data.global.least_freq, 'keno-least-table', 'info');
+
+                // Afficher les tableaux du mois le plus récent
+                const moisKeys = Object.keys(data.par_mois || {});
+                if (moisKeys.length > 0) {
+                    // Trier pour prendre le mois le plus récent
+                    moisKeys.sort();
+                    const lastMonth = moisKeys[moisKeys.length - 1];
+                    const monthStats = data.par_mois[lastMonth];
+                    renderKenoTable(monthStats.most, monthStats.most_freq, 'keno-month-most-table', 'warning');
+                    renderKenoTable(monthStats.least, monthStats.least_freq, 'keno-month-least-table', 'info');
+                } else {
+                    document.getElementById('keno-month-most-table').innerHTML = '<div class="alert alert-secondary">Aucune donnée</div>';
+                    document.getElementById('keno-month-least-table').innerHTML = '<div class="alert alert-secondary">Aucune donnée</div>';
                 }
-                if (data.total_numbers) {
-                    document.getElementById('keno-total-numbers').textContent = data.total_numbers;
+
+                // Afficher les tableaux de la semaine la plus récente
+                const semaineKeys = Object.keys(data.par_semaine || {});
+                if (semaineKeys.length > 0) {
+                    // Trier pour prendre la semaine la plus récente
+                    semaineKeys.sort();
+                    const lastWeek = semaineKeys[semaineKeys.length - 1];
+                    const weekStats = data.par_semaine[lastWeek];
+                    renderKenoTable(weekStats.most, weekStats.most_freq, 'keno-week-most-table', 'warning');
+                    renderKenoTable(weekStats.least, weekStats.least_freq, 'keno-week-least-table', 'info');
+                } else {
+                    document.getElementById('keno-week-most-table').innerHTML = '<div class="alert alert-secondary">Aucune donnée</div>';
+                    document.getElementById('keno-week-least-table').innerHTML = '<div class="alert alert-secondary">Aucune donnée</div>';
+                }
+
+                // Remplir les informations de la modal
+                if (data.global.total_draws) {
+                    document.getElementById('keno-total-tirages').textContent = data.global.total_draws;
+                }
+                if (data.global.total_numbers) {
+                    document.getElementById('keno-total-numbers').textContent = data.global.total_numbers;
                 }
                 if (data.date_analyse) {
                     document.getElementById('keno-date-analyse').textContent = data.date_analyse;
