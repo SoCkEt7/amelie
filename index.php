@@ -18,83 +18,23 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Gestion de la connexion
-if (!isset($_SESSION['connected'])) {
-    if (isset($_POST['connexion']) && isset($_POST['password'])) {
-        if (trim($_POST['password']) === $password) {
-            $_SESSION['connected'] = true;
-        } else {
-            $login_error = "Mot de passe incorrect";
-        }
-    }
-}
+// La gestion du login et le formulaire sont désormais centralisés dans le header.
 
-// Afficher le formulaire de connexion si non connecté
-if (!isset($_SESSION['connected'])) { ?>
-    <div align="center" class="form-group p-5">
-        <h1>Connexion</h1>
-        <form action="" method="post" class="w-100" style="max-width: 400px;">
-            <?php if (isset($login_error)): ?>
-            <div class="alert alert-danger"><?php echo $login_error; ?></div>
-            <?php endif; ?>
-            <div class="mb-3">
-                <input class="form-control form-control-lg" type="password" name="password" placeholder="Mot de passe" required autofocus>
-            </div>
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary btn-lg" name="connexion">Connexion</button>
-            </div>
-        </form>
-    </div>
-<?php } else {
-    // Utilisateur connecté - Afficher l'application
-    
-    // Récupérer les données directement (sans cache)
-    $dataFetcher = new TirageDataFetcher();
-    $recentData = $dataFetcher->getRecentTirages();
-    $historicalData = $dataFetcher->getHistoricalTirages(1000); // Limiter à 1000 tirages
-    $historicalCount = isset($historicalData['numbers']) ? count($historicalData['numbers']) : 0;
-    $recentCount = isset($recentData['numbers']) ? count($recentData['numbers']) : 0;
-    
-    // Générer les stratégies basées sur les données récupérées
-    $strategiesCalculator = new TirageStrategies($historicalData, $recentData);
-    $strategies = $strategiesCalculator->getStrategies();
-    
-    // Récupérer aussi les stratégies journalières pour le top5Safe
-    $dailyTirages = TirageDailyStrategies::getDailyTirages($dataFetcher);
-    $dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
-    $dailyStrategies = $dailyStrategiesCalculator->getStrategies();
+// --- DÉBUT DU CODE APPLICATIF PRINCIPAL ---
+$dataFetcher = new TirageDataFetcher();
+$recentData = $dataFetcher->getRecentTirages();
+$historicalData = $dataFetcher->getHistoricalTirages(1000); // Limiter à 1000 tirages
+$historicalCount = isset($historicalData['numbers']) ? count($historicalData['numbers']) : 0;
+$recentCount = isset($recentData['numbers']) ? count($recentData['numbers']) : 0;
 
-    // Préparer le top 5 safe (accueil + jour)
-    
-    // Marquer la source pour chaque stratégie
-    foreach ($strategies as &$strat) {
-        $strat['source'] = 'Historique';
-    }
-    unset($strat);
-    
-    foreach ($dailyStrategies as &$strat) {
-        $strat['source'] = 'Journalier';
-    }
-    unset($strat);
-    
-    $allStrategies = array_merge($strategies, $dailyStrategies);
+// Générer les stratégies basées sur les données récupérées
+$strategiesCalculator = new TirageStrategies($historicalData, $recentData);
+$strategies = $strategiesCalculator->getStrategies();
 
-    // Ajout des valeurs par défaut si manquantes
-    foreach ($allStrategies as &$strat) {
-        if (!isset($strat['roi'])) $strat['roi'] = 0;
-        if (!isset($strat['ev'])) $strat['ev'] = 0;
-    }
-    unset($strat);
-
-    // Prevent debug output
-    ob_start();
-    usort($allStrategies, function($a, $b) {
-        if ($a['roi'] == $b['roi']) return $b['ev'] <=> $a['ev'];
-        if ($a['roi'] > 0 && $b['roi'] <= 0) return -1;
-        if ($a['roi'] <= 0 && $b['roi'] > 0) return 1;
-        return $b['roi'] <=> $a['roi'];
-    });
-    ob_end_clean();
+// Récupérer aussi les stratégies journalières pour le top5Safe
+$dailyTirages = TirageDailyStrategies::getDailyTirages($dataFetcher);
+$dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
+$dailyStrategies = $dailyStrategiesCalculator->getStrategies();
     
     // Séparer les stratégies par source
     $historicalStrategies = array_filter($allStrategies, function($strat) {

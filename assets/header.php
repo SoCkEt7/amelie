@@ -6,6 +6,7 @@ include('src/startup.php'); ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="robots" content="noindex, nofollow">
     <title>Amélie - Générateur de Tirages Optimisés</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +20,39 @@ include('src/startup.php'); ?>
 </head>
 <body data-bs-theme="dark">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<?php
+// Centralisation de la logique de connexion
+if (!isset($_SESSION['connected'])) {
+    if (isset($_POST['connexion']) && isset($_POST['password'])) {
+        if (trim($_POST['password']) === $password) {
+            $_SESSION['connected'] = true;
+            // Redirection pour éviter le repost du formulaire
+            header('Location: ' . $_SERVER['REQUEST_URI']);
+            exit;
+        } else {
+            $login_error = "Mot de passe incorrect";
+        }
+    }
+}
+?>
+
+<?php if (!isset($_SESSION['connected'])): ?>
+    <div align="center" class="form-group p-5">
+        <h1>Connexion</h1>
+        <form action="" method="post" class="w-100" style="max-width: 400px;">
+            <?php if (isset($login_error)): ?>
+            <div class="alert alert-danger"><?php echo htmlspecialchars($login_error); ?></div>
+            <?php endif; ?>
+            <div class="mb-3">
+                <input class="form-control form-control-lg" type="password" name="password" placeholder="Mot de passe" required autofocus>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" name="connexion">Connexion</button>
+            </div>
+        </form>
+    </div>
+    <?php exit; endif; ?>
 
 <?php if (isset($cacheWarning)): ?>
 <div class="alert alert-warning m-0 border-0 rounded-0">

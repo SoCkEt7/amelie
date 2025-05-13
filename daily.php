@@ -22,77 +22,88 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Gestion de la connexion
-if (!isset($_SESSION['connected'])) {
-    if (isset($_POST['connexion']) && isset($_POST['password'])) {
-        if (trim($_POST['password']) === $password) {
-            $_SESSION['connected'] = true;
-        } else {
-            $login_error = "Mot de passe incorrect";
-        }
-    }
+// La gestion du login et le formulaire sont désormais centralisés dans le header.
+
+// --- DÉBUT DU CODE APPLICATIF PRINCIPAL ---
+// Utilisateur connecté - Afficher l'application
+
+// Récupérer les données directement
+$dataFetcher = new TirageDataFetcher();
+
+// Récupérer les tirages du jour
+$dailyTirages = TirageDailyStrategies::getDailyTirages($dataFetcher);
+
+// Récupérer le tirage le plus récent pour comparaison
+$recentData = $dataFetcher->getRecentTirages();
+
+// Générer les stratégies basées sur les données du jour
+$dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
+$dailyStrategies = $dailyStrategiesCalculator->getStrategies();
+
+// Marquer les stratégies journalières
+foreach ($dailyStrategies as &$strat) {
+    $strat['source'] = 'Journalier';
 }
+unset($strat);
 
-// Afficher le formulaire de connexion si non connecté
-if (!isset($_SESSION['connected'])) { ?>
-    <div align="center" class="form-group p-5">
-        <h1>Connexion</h1>
-        <form action="" method="post" class="w-100" style="max-width: 400px;">
-            <?php if (isset($login_error)): ?>
-            <div class="alert alert-danger">
-                <?php echo htmlspecialchars($login_error); ?>
-            </div>
-            <?php endif; ?>
-            <div class="mb-3">
-                <input class="form-control form-control-lg" type="password" name="password" placeholder="Mot de passe" required autofocus>
-            </div>
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary btn-lg" name="connexion">Connexion</button>
-            </div>
-        </form>
-    </div>
-<?php } else {
-    // Utilisateur connecté - Afficher l'application
-    
-    // Récupérer les données directement
-    $dataFetcher = new TirageDataFetcher();
-    
-    // Récupérer les tirages du jour
-    $dailyTirages = TirageDailyStrategies::getDailyTirages($dataFetcher);
-    
-    // Récupérer le tirage le plus récent pour comparaison
-    $recentData = $dataFetcher->getRecentTirages();
-    
-    // Générer les stratégies basées sur les données du jour
-    $dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
-    $dailyStrategies = $dailyStrategiesCalculator->getStrategies();
-    
-    // Marquer les stratégies journalières
-    foreach ($dailyStrategies as &$strat) {
-        $strat['source'] = 'Journalier';
-    }
-    unset($strat);
+// Récupérer les stratégies historiques si pas déjà disponibles
+$historicalData = $dataFetcher->getHistoricalTirages(1000); // Limiter à 1000 tirages
+$strategiesCalculator = new TirageStrategies($historicalData, $recentData);
+$strategies = $strategiesCalculator->getStrategies();
 
-    // Récupérer les stratégies historiques si pas déjà disponibles
-    $historicalData = $dataFetcher->getHistoricalTirages(1000); // Limiter à 1000 tirages
-    $strategiesCalculator = new TirageStrategies($historicalData, $recentData);
-    $strategies = $strategiesCalculator->getStrategies();
-    
-    // Marquer les stratégies historiques
-    foreach ($strategies as &$strat) {
-        $strat['source'] = 'Historique';
-    }
-    unset($strat);
+// Marquer les stratégies historiques
+foreach ($strategies as &$strat) {
+    $strat['source'] = 'Historique';
+}
+unset($strat);
 
-    // Préparer le top 5 safe (accueil + jour)
-    $allStrategies = array_merge($dailyStrategies, $strategies);
+// Préparer le top 5 safe (accueil + jour)
+$allStrategies = array_merge($dailyStrategies, $strategies);
+
+// Ajout des valeurs par défaut si manquantes
+foreach ($allStrategies as &$strat) {
+    if (!isset($strat['roi'])) $strat['roi'] = 0;
+    if (!isset($strat['ev'])) $strat['ev'] = 0;
+}
+unset($strat);
+
+// Prevent debug output
+ob_start();
+usort($allStrategies, function($a, $b) {
+    if ($a['roi'] == $b['roi']) return $b['ev'] <=> $a['ev'];
+    if ($a['roi'] > 0 && $b['roi'] <= 0) return -1;
+    if ($a['roi'] <= 0 && $b['roi'] > 0) return 1;
+    return $b['roi'] <=> $a['roi'];
+});
+ob_end_clean();
+
+// Séparer les stratégies par source
+$historicalStrategies = array_filter($allStrategies, function($strat) {
+    return $strat['source'] === 'Historique';
+});
+
+$dailyStrategiesArray = array_filter($allStrategies, function($strat) {
+    return $strat['source'] === 'Journalier';
+});
+
+// Prendre les 3 meilleures stratégies historiques
+$top3Historical = array_slice(array_values($historicalStrategies), 0, 3);
+
+// Prendre les 2 meilleures stratégies journalières
+$top2Daily = array_slice(array_values($dailyStrategiesArray), 0, 2);
+
+// Combiner pour former le top 5
+$top5Safe = array_merge($top3Historical, $top2Daily);
+
+// Trier le top 5 final par rating
+usort($top5Safe, function($a, $b) {
+    return $b['rating'] <=> $a['rating'];
+});
+
+?>
     
-    // Ajout des valeurs par défaut si manquantes
-    foreach ($allStrategies as &$strat) {
-        if (!isset($strat['roi'])) $strat['roi'] = 0;
-        if (!isset($strat['ev'])) $strat['ev'] = 0;
-    }
-    unset($strat);
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Stratégies Journalières</h1>
     
     // Prevent debug output
     ob_start();
