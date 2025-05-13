@@ -117,6 +117,10 @@ class TirageDailyStrategies {
         $this->strategies[] = $this->generatePositionTransitionStrategy($positionPatterns);
         $this->strategies[] = $this->generateBlueYellowBalanceStrategy($blueFrequency, $yellowFrequency, $allFrequency);
         
+        // Ajouter les stratégies des numéros les plus et moins sortis
+        $this->strategies[] = $this->generateMostFrequentStrategy($allFrequency);
+        $this->strategies[] = $this->generateLeastFrequentStrategy($allFrequency);
+        
         // Trier les stratégies par note (rating) décroissante
         usort($this->strategies, function($a, $b) {
             return $b['rating'] <=> $a['rating'];
@@ -813,6 +817,70 @@ class TirageDailyStrategies {
             'method' => 'Optimisation de la distribution bleu/jaune pour le jour',
             'bestPlayCount' => self::PLAYER_PICK,
             'optimalBet' => '8€'
+        ];
+    }
+    
+    /**
+     * 9. Stratégie des Numéros les Plus Fréquents du Jour
+     * Sélectionne les numéros qui sont apparus le plus souvent aujourd'hui
+     * 
+     * @param array $allFrequency Fréquence totale des numéros
+     * @return array Stratégie basée sur les numéros les plus fréquents
+     */
+    private function generateMostFrequentStrategy($allFrequency) {
+        // Trier par fréquence décroissante
+        $frequencies = $allFrequency;
+        arsort($frequencies);
+        
+        // Sélectionner les 7 numéros les plus fréquents
+        $selectedNumbers = array_slice(array_keys($frequencies), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Top Fréquents du Jour',
+            'description' => 'Les 7 numéros qui sont sortis le plus souvent aujourd\'hui',
+            'numbers' => $selectedNumbers,
+            'rating' => 8.9,
+            'class' => 'info',
+            'method' => 'Analyse des fréquences journalières',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '6€'
+        ];
+    }
+    
+    /**
+     * 10. Stratégie des Numéros les Moins Fréquents du Jour
+     * Sélectionne les numéros qui sont apparus le moins souvent aujourd'hui
+     * 
+     * @param array $allFrequency Fréquence totale des numéros
+     * @return array Stratégie basée sur les numéros les moins fréquents
+     */
+    private function generateLeastFrequentStrategy($allFrequency) {
+        // Initialiser un tableau avec tous les numéros possibles
+        $allNumbers = range(1, self::MAX_NUM);
+        $frequencies = [];
+        
+        // Préparer le tableau de fréquences (en inversant les valeurs pour trier correctement)
+        foreach ($allNumbers as $num) {
+            $frequencies[$num] = isset($allFrequency[$num]) ? -$allFrequency[$num] : 0;
+        }
+        
+        // Trier par fréquence croissante (valeur négative décroissante)
+        arsort($frequencies);
+        
+        // Sélectionner les 7 numéros les moins fréquents
+        $selectedNumbers = array_slice(array_keys($frequencies), 0, self::PLAYER_PICK);
+        sort($selectedNumbers);
+        
+        return [
+            'name' => 'Numéros Rares du Jour',
+            'description' => 'Les 7 numéros qui sont sortis le moins souvent aujourd\'hui',
+            'numbers' => $selectedNumbers,
+            'rating' => 7.8,
+            'class' => 'danger',
+            'method' => 'Analyse des raretés journalières',
+            'bestPlayCount' => self::PLAYER_PICK,
+            'optimalBet' => '4€'
         ];
     }
 }

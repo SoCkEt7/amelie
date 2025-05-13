@@ -47,9 +47,6 @@ if (!isset($_SESSION['connected'])) { ?>
     </div>
 <?php } else {
     // Utilisateur connecté - Afficher l'application
-    // Activer le rapport d'erreurs pour le débogage
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
     
     // Récupérer les données directement (sans cache)
     $dataFetcher = new TirageDataFetcher();
@@ -61,12 +58,26 @@ if (!isset($_SESSION['connected'])) { ?>
     // Générer les stratégies basées sur les données récupérées
     $strategiesCalculator = new TirageStrategies($historicalData, $recentData);
     $strategies = $strategiesCalculator->getStrategies();
+    
+    // Récupérer aussi les stratégies journalières pour le top5Safe
+    $dailyTirages = TirageDailyStrategies::getDailyTirages($dataFetcher);
+    $dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
+    $dailyStrategies = $dailyStrategiesCalculator->getStrategies();
 
-    // Préparer le top 3 safe (accueil + jour)
-    $allStrategies = $strategies;
-    if (isset($dailyStrategies)) {
-        $allStrategies = array_merge($allStrategies, $dailyStrategies);
+    // Préparer le top 5 safe (accueil + jour)
+    
+    // Marquer la source pour chaque stratégie
+    foreach ($strategies as &$strat) {
+        $strat['source'] = 'Historique';
     }
+    unset($strat);
+    
+    foreach ($dailyStrategies as &$strat) {
+        $strat['source'] = 'Journalier';
+    }
+    unset($strat);
+    
+    $allStrategies = array_merge($strategies, $dailyStrategies);
 
     // Ajout des valeurs par défaut si manquantes
     foreach ($allStrategies as &$strat) {
@@ -74,13 +85,39 @@ if (!isset($_SESSION['connected'])) { ?>
         if (!isset($strat['ev'])) $strat['ev'] = 0;
     }
     unset($strat);
+
+    // Prevent debug output
+    ob_start();
     usort($allStrategies, function($a, $b) {
         if ($a['roi'] == $b['roi']) return $b['ev'] <=> $a['ev'];
         if ($a['roi'] > 0 && $b['roi'] <= 0) return -1;
         if ($a['roi'] <= 0 && $b['roi'] > 0) return 1;
         return $b['roi'] <=> $a['roi'];
     });
-    $top3Safe = array_slice($allStrategies, 0, 3);
+    ob_end_clean();
+    
+    // Séparer les stratégies par source
+    $historicalStrategies = array_filter($allStrategies, function($strat) {
+        return $strat['source'] === 'Historique';
+    });
+    
+    $dailyStrategiesArray = array_filter($allStrategies, function($strat) {
+        return $strat['source'] === 'Journalier';
+    });
+    
+    // Prendre les 3 meilleures stratégies historiques
+    $top3Historical = array_slice(array_values($historicalStrategies), 0, 3);
+    
+    // Prendre les 2 meilleures stratégies journalières
+    $top2Daily = array_slice(array_values($dailyStrategiesArray), 0, 2);
+    
+    // Combiner pour former le top 5
+    $top5Safe = array_merge($top3Historical, $top2Daily);
+    
+    // Trier le top 5 final par rating
+    usort($top5Safe, function($a, $b) {
+        return $b['rating'] <=> $a['rating'];
+    });
 
     // Inclure l'en-tête
     include 'assets/header.php';
@@ -112,6 +149,9 @@ if (!isset($_SESSION['connected'])) { ?>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#gainsTabs"><i class="fas fa-coins me-1"></i>Gains</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#kenoSection"><i class="fas fa-dice me-1"></i>Keno</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="?logout=1"><i class="fas fa-sign-out-alt me-1"></i>Déconnexion</a>
@@ -484,7 +524,9 @@ if (!isset($_SESSION['connected'])) { ?>
                 </div>
             </div>
         </div>
+
     </div>
+
 <?php 
 }
 

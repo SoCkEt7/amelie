@@ -1,4 +1,4 @@
 {
-  "git": { "strategy": "autocommit" },
+  "git": { "strategy": "prompt" },
   "testing": { "command": "npm test" }
 }

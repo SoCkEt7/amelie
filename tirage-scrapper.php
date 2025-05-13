@@ -13,7 +13,7 @@
  *
  * Dépendances :  composer require nesk/puphpeteer
  */
-
+exit;
 require __DIR__.'/vendor/autoload.php';
 
 use Nesk\Puphpeteer\Puppeteer;

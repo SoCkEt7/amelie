@@ -54,10 +54,6 @@ if (!isset($_SESSION['connected'])) { ?>
 <?php } else {
     // Utilisateur connecté - Afficher l'application
     
-    // Activer le rapport d'erreurs pour le débogage
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    
     // Récupérer les données directement
     $dataFetcher = new TirageDataFetcher();
     
@@ -70,25 +66,66 @@ if (!isset($_SESSION['connected'])) { ?>
     // Générer les stratégies basées sur les données du jour
     $dailyStrategiesCalculator = new TirageDailyStrategies($dailyTirages);
     $dailyStrategies = $dailyStrategiesCalculator->getStrategies();
-
-    // Préparer le top 3 safe (accueil + jour)
-    $allStrategies = $dailyStrategies;
-    if (isset($strategies)) {
-        $allStrategies = array_merge($allStrategies, $strategies);
+    
+    // Marquer les stratégies journalières
+    foreach ($dailyStrategies as &$strat) {
+        $strat['source'] = 'Journalier';
     }
+    unset($strat);
+
+    // Récupérer les stratégies historiques si pas déjà disponibles
+    $historicalData = $dataFetcher->getHistoricalTirages(1000); // Limiter à 1000 tirages
+    $strategiesCalculator = new TirageStrategies($historicalData, $recentData);
+    $strategies = $strategiesCalculator->getStrategies();
+    
+    // Marquer les stratégies historiques
+    foreach ($strategies as &$strat) {
+        $strat['source'] = 'Historique';
+    }
+    unset($strat);
+
+    // Préparer le top 5 safe (accueil + jour)
+    $allStrategies = array_merge($dailyStrategies, $strategies);
+    
     // Ajout des valeurs par défaut si manquantes
     foreach ($allStrategies as &$strat) {
         if (!isset($strat['roi'])) $strat['roi'] = 0;
         if (!isset($strat['ev'])) $strat['ev'] = 0;
     }
     unset($strat);
+    
+    // Prevent debug output
+    ob_start();
     usort($allStrategies, function($a, $b) {
         if ($a['roi'] == $b['roi']) return $b['ev'] <=> $a['ev'];
         if ($a['roi'] > 0 && $b['roi'] <= 0) return -1;
         if ($a['roi'] <= 0 && $b['roi'] > 0) return 1;
         return $b['roi'] <=> $a['roi'];
     });
-    $top3Safe = array_slice($allStrategies, 0, 3);
+    ob_end_clean();
+    
+    // Séparer les stratégies par source
+    $historicalStrategies = array_filter($allStrategies, function($strat) {
+        return $strat['source'] === 'Historique';
+    });
+    
+    $dailyStrategiesArray = array_filter($allStrategies, function($strat) {
+        return $strat['source'] === 'Journalier';
+    });
+    
+    // Prendre les 3 meilleures stratégies historiques
+    $top3Historical = array_slice(array_values($historicalStrategies), 0, 3);
+    
+    // Prendre les 2 meilleures stratégies journalières
+    $top2Daily = array_slice(array_values($dailyStrategiesArray), 0, 2);
+    
+    // Combiner pour former le top 5
+    $top5Safe = array_merge($top3Historical, $top2Daily);
+    
+    // Trier le top 5 final par rating
+    usort($top5Safe, function($a, $b) {
+        return $b['rating'] <=> $a['rating'];
+    });
     
     ?>
     

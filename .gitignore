@@ -30,7 +30,7 @@ logs/
 .vscode/
 .DS_Store
 Thumbs.db
-
+.idea
 # Framework specific
 ## Laravel
 /node_modules/

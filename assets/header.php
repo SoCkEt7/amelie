@@ -59,6 +59,9 @@ include('src/startup.php'); ?>
                     <a href="tirages.php" class="btn btn-sm btn-outline-success me-1">
                         <i class="fas fa-history me-1"></i>Historique
                     </a>
+                    <a href="keno.php" class="btn btn-sm btn-outline-warning me-1">
+                        <i class="fas fa-dice me-1"></i>Keno
+                    </a>
                     <button class="btn btn-sm btn-outline-warning me-1" data-bs-toggle="modal" data-bs-target="#safeModal" title="Top 3 Safe">
                         <i class="fas fa-shield-alt"></i>
                     </button>
@@ -94,27 +97,16 @@ include('src/startup.php'); ?>
                         <a href="tirages.php" class="btn btn-outline-success">
                             <i class="fas fa-history me-2"></i>Historique
                         </a>
+                        <a href="keno.php" class="btn btn-outline-warning">
+                            <i class="fas fa-dice me-2"></i>Keno
+                        </a>
                     </div>
                 </div>
             </div>
             <?php endif; ?>
         </div>
     </div>
-    <!-- Debug temporaire : afficher les stratégies fusionnées -->
-    <?php
-    if (isset($allStrategies)) {
-        echo "<pre class='text-bg-dark small p-2'>";
-        echo "<b>allStrategies :</b>\n";
-        print_r($allStrategies);
-        echo "</pre>";
-    }
-    if (isset($top3Safe)) {
-        echo "<pre class='text-bg-dark small p-2'>";
-        echo "<b>top3Safe :</b>\n";
-        print_r($top3Safe);
-        echo "</pre>";
-    }
-    ?>
+
 </header>
 
 <!-- Modale Safe Global -->
@@ -123,14 +115,17 @@ include('src/startup.php'); ?>
     <div class="modal-content">
       <div class="modal-header bg-dark text-white">
         <h5 class="modal-title w-100 text-center" id="safeModalLabel">
-          <i class="fas fa-shield-alt me-2 text-success"></i>Top 3 stratégies « safe » (Accueil + Jour)
+          <i class="fas fa-shield-alt me-2 text-success"></i>Top 5 stratégies « safe » (3 Historiques + 2 Journalières)
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
       </div>
       <div class="modal-body">
-        <?php if (isset($top3Safe) && !empty($top3Safe)): ?>
+        <?php if (isset($top5Safe) && !empty($top5Safe)): ?>
           <div class="row justify-content-center">
-            <?php foreach ($top3Safe as $strategy): ?>
+            <div class="alert alert-info text-center mb-3">
+              <i class="fas fa-info-circle me-2"></i>Combinaison de nos meilleures stratégies historiques et journalières
+            </div>
+            <?php foreach ($top5Safe as $strategy): ?>
               <div class="col-md-4 mb-3">
                 <div class="card h-100 shadow border-<?php echo $strategy['class'] ?? 'primary'; ?>">
                   <div class="card-header bg-<?php echo $strategy['class'] ?? 'primary'; ?> text-white text-center">
@@ -144,7 +139,7 @@ include('src/startup.php'); ?>
                       <span class="badge bg-dark me-1">Source : <b><?php echo htmlspecialchars($strategy['method'] ?? ''); ?></b></span>
                     </div>
                     <div class="mb-2">
-                      <span class="badge bg-success me-1">EV : <b><?php echo (isset($strategy['ev']) && $strategy['ev'] > 0) ? number_format($strategy['ev'], 2) : 'Non calculé'; ?> €</b></span>
+                      <span class="badge bg-success me-1">EV : <b><?php echo (isset($strategy['ev']) && $strategy['ev'] > 0) ? number_format($strategy['ev'], 2) : 'Non calculé'; ?> €</b></span>
                       <span class="badge bg-primary">ROI : <b><?php echo (isset($strategy['roi']) && $strategy['roi'] > 0) ? number_format($strategy['roi'], 3) : 'Non calculé'; ?></b></span>
                     </div>
                     <div class="mb-2">
@@ -161,7 +156,8 @@ include('src/startup.php'); ?>
                       ?>
                     </div>
                     <div class="mt-2">
-                      <span class="badge bg-light text-dark">Tirage : <b><?php echo isset($strategy['source']) ? htmlspecialchars($strategy['source']) : 'Historique'; ?></b></span>
+                      <span class="badge bg-<?php echo $strategy['source'] === 'Journalier' ? 'warning' : 'light'; ?> text-dark">Tirage : <b><?php echo htmlspecialchars($strategy['source']); ?></b></span>
+                      <span class="badge bg-dark">Score : <b><?php echo number_format($strategy['rating'], 1); ?>/10</b></span>
                     </div>
                     <div class="mt-2 small text-muted">
                       <?php

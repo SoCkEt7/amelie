@@ -1,5 +1,7 @@
 <?php
 // Fichier de démarrage pour Amélie - version simplifiée
+error_reporting(0);
+ini_set('display_errors', 0);
 
 // Démarrer la session s'il elle n'est pas déjà démarrée
 if (session_status() == PHP_SESSION_NONE) {
